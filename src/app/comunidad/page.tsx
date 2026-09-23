@@ -2,8 +2,7 @@ import { requireProfile } from '@/lib/auth/get-profile';
 import { getChallenges, getFeedPosts, getStreakRanking } from './data';
 import { ClientAppShell } from '@/components/layout/ClientAppShell';
 import { TrainerAppShell } from '@/components/layout/TrainerAppShell';
-import { ChallengesColumn } from '@/components/comunidad/ChallengesColumn';
-import { FeedColumn } from '@/components/comunidad/FeedColumn';
+import { CommunityFeed } from '@/components/comunidad/CommunityFeed';
 import { StreakRankingColumn } from '@/components/comunidad/StreakRankingColumn';
 
 export default async function ComunidadPage() {
@@ -15,11 +14,14 @@ export default async function ComunidadPage() {
   ]);
 
   const content = (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-3xl">Comunidad</h1>
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr_280px]">
-        <ChallengesColumn challenges={challenges} currentUserId={profile.id} />
-        <FeedColumn posts={posts} currentUserId={profile.id} isTrainer={profile.role === 'trainer'} />
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <CommunityFeed
+          challenges={challenges}
+          posts={posts}
+          currentUserId={profile.id}
+          isTrainer={profile.role === 'trainer'}
+        />
         <StreakRankingColumn ranking={ranking} currentUserId={profile.id} />
       </div>
     </div>

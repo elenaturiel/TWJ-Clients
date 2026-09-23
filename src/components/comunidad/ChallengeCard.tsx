@@ -5,27 +5,7 @@ import { useState, useTransition } from 'react';
 import { joinChallengeAction } from '@/app/comunidad/actions';
 import type { ChallengeWithParticipants } from '@/app/comunidad/data';
 
-export function ChallengesColumn({
-  challenges,
-  currentUserId,
-}: {
-  challenges: ChallengeWithParticipants[];
-  currentUserId: string;
-}) {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl">Retos activos</h2>
-      {challenges.length === 0 && (
-        <p className="card p-4 text-sm text-navy/50">Ahora mismo no hay retos abiertos.</p>
-      )}
-      {challenges.map((c) => (
-        <ChallengeCard key={c.id} challenge={c} currentUserId={currentUserId} />
-      ))}
-    </div>
-  );
-}
-
-function ChallengeCard({
+export function ChallengeCard({
   challenge,
   currentUserId,
 }: {
@@ -46,7 +26,8 @@ function ChallengeCard({
 
   return (
     <div className="card p-4">
-      <div className="flex items-start gap-3">
+      <span className="text-xs font-semibold uppercase tracking-wide text-amber">Reto</span>
+      <div className="mt-1 flex items-start gap-3">
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-card bg-bg">
           <Image src={challenge.badge_image_url} alt={challenge.badge_name} fill className="object-cover" />
         </div>
