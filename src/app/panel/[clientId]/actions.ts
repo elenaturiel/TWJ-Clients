@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/get-profile';
+import { getClientExerciseSuggestions } from './data';
 import type { WorkoutStatus, MealType } from '@/lib/types/database.types';
 
 async function trainerClient() {
@@ -102,30 +103,56 @@ export async function applyTemplateToWorkoutAction(
 ) {
   const supabase = await trainerClient();
 
-  const { data: templateExercises, error: fetchError } = await supabase
-    .from('routine_template_exercises')
-    .select('*')
-    .eq('template_id', templateId)
-    .order('sort_order', { ascending: true });
+  const [{ data: templateExercises, error: fetchError }, suggestions] = await Promise.all([
+    supabase
+      .from('routine_template_exercises')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('sort_order', { ascending: true }),
+    getClientExerciseSuggestions(clientId),
+  ]);
 
   if (fetchError) return { error: fetchError.message, exercises: null };
   if (!templateExercises || templateExercises.length === 0) {
     return { error: 'Esa rutina no tiene ejercicios todavía.', exercises: null };
   }
 
-  const rows = templateExercises.map((ex, i) => ({
-    workout_id: workoutId,
-    name: ex.name,
-    sets_reps: ex.sets_reps,
-    recommended_weight_kg: ex.recommended_weight_kg,
-    sort_order: Date.now() + i,
-  }));
+  // Si este cliente ya tiene un peso/reps propios para un ejercicio con el
+  // mismo nombre (de un entreno anterior suyo), se usan esos en vez del
+  // valor genérico de la plantilla — Jaime siempre puede ajustarlo después.
+  const rows = templateExercises.map((ex, i) => {
+    const known = suggestions[ex.name.trim().toLowerCase()];
+    return {
+      workout_id: workoutId,
+      name: ex.name,
+      sets_reps: known?.setsReps ?? ex.sets_reps,
+      recommended_weight_kg: known?.weightKg ?? ex.recommended_weight_kg,
+      sort_order: Date.now() + i,
+    };
+  });
 
   const { data: inserted, error } = await supabase.from('workout_exercises').insert(rows).select();
   if (error) return { error: error.message, exercises: null };
 
   revalidatePath(`/panel/${clientId}`);
   return { error: null, exercises: inserted };
+}
+
+export async function updateExerciseAction(
+  exerciseId: string,
+  clientId: string,
+  name: string,
+  setsReps: string,
+  recommendedWeightKg: number | null
+) {
+  const supabase = await trainerClient();
+  const { error } = await supabase
+    .from('workout_exercises')
+    .update({ name, sets_reps: setsReps || null, recommended_weight_kg: recommendedWeightKg })
+    .eq('id', exerciseId);
+  if (error) return { error: error.message };
+  revalidatePath(`/panel/${clientId}`);
+  return { error: null };
 }
 
 export async function removeExerciseAction(exerciseId: string, clientId: string) {
@@ -185,6 +212,19 @@ export async function upsertMealAction(input: {
 export async function addIngredientAction(mealId: string, clientId: string, name: string, grams: number | null) {
   const supabase = await trainerClient();
   const { error } = await supabase.from('meal_ingredients').insert({ meal_id: mealId, name, grams });
+  if (error) return { error: error.message };
+  revalidatePath(`/panel/${clientId}`);
+  return { error: null };
+}
+
+export async function updateIngredientAction(
+  ingredientId: string,
+  clientId: string,
+  name: string,
+  grams: number | null
+) {
+  const supabase = await trainerClient();
+  const { error } = await supabase.from('meal_ingredients').update({ name, grams }).eq('id', ingredientId);
   if (error) return { error: error.message };
   revalidatePath(`/panel/${clientId}`);
   return { error: null };

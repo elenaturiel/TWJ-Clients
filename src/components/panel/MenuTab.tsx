@@ -4,9 +4,10 @@ import { useState, useTransition } from 'react';
 import {
   upsertMealAction,
   addIngredientAction,
+  updateIngredientAction,
   removeIngredientAction,
 } from '@/app/panel/[clientId]/actions';
-import type { MealType } from '@/lib/types/database.types';
+import type { MealType, MealIngredient } from '@/lib/types/database.types';
 import type { MealWithIngredients } from '@/app/panel/[clientId]/data';
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
@@ -164,6 +165,10 @@ function MealEditor({
     });
   };
 
+  const updateIngredient = (updated: MealIngredient) => {
+    setIngredients((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+  };
+
   return (
     <div className="card p-4">
       <span className="text-xs font-semibold uppercase tracking-wide text-navy/50">{label}</span>
@@ -178,14 +183,13 @@ function MealEditor({
       {mealId && (
         <div className="mt-2 space-y-1">
           {ingredients.map((ing) => (
-            <div key={ing.id} className="flex items-center justify-between rounded-card bg-bg px-2 py-1 text-xs">
-              <span>
-                {ing.name} {ing.grams != null && <span className="text-navy/50">· {ing.grams}g</span>}
-              </span>
-              <button onClick={() => removeIngredient(ing.id)} className="text-navy/40 hover:text-red-600">
-                ✕
-              </button>
-            </div>
+            <IngredientEditRow
+              key={ing.id}
+              ingredient={ing}
+              clientId={clientId}
+              onUpdated={updateIngredient}
+              onRemove={() => removeIngredient(ing.id)}
+            />
           ))}
           <div className="flex gap-1 pt-1">
             <input
@@ -221,6 +225,72 @@ function MealEditor({
       {!mealId && (
         <p className="mt-1 text-[11px] text-navy/40">Guarda primero para poder añadir ingredientes.</p>
       )}
+    </div>
+  );
+}
+
+function IngredientEditRow({
+  ingredient,
+  clientId,
+  onUpdated,
+  onRemove,
+}: {
+  ingredient: MealIngredient;
+  clientId: string;
+  onUpdated: (updated: MealIngredient) => void;
+  onRemove: () => void;
+}) {
+  const [name, setName] = useState(ingredient.name);
+  const [grams, setGrams] = useState(ingredient.grams != null ? String(ingredient.grams) : '');
+  const [dirty, setDirty] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const save = () => {
+    if (!name.trim()) return;
+    setError(null);
+    const gramsValue = grams ? Number(grams.replace(',', '.')) : null;
+    startTransition(async () => {
+      const result = await updateIngredientAction(ingredient.id, clientId, name.trim(), gramsValue);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onUpdated({ ...ingredient, name: name.trim(), grams: gramsValue });
+      setDirty(false);
+    });
+  };
+
+  return (
+    <div className="rounded-card bg-bg px-2 py-1 text-xs">
+      <div className="flex items-center gap-1">
+        <input
+          className="input flex-1 py-0.5 text-xs"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setDirty(true);
+          }}
+        />
+        <input
+          className="input w-14 py-0.5 text-xs"
+          placeholder="g"
+          value={grams}
+          onChange={(e) => {
+            setGrams(e.target.value);
+            setDirty(true);
+          }}
+        />
+        {dirty && (
+          <button onClick={save} disabled={isPending} className="text-positive">
+            ✓
+          </button>
+        )}
+        <button onClick={onRemove} className="text-navy/40 hover:text-red-600">
+          ✕
+        </button>
+      </div>
+      {error && <p className="text-red-600">{error}</p>}
     </div>
   );
 }
