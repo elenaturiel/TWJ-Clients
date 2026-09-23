@@ -39,6 +39,9 @@ export type WorkoutExercise = {
   workout_id: string;
   name: string;
   sets_reps: string | null;
+  recommended_weight_kg: number | null;
+  actual_sets_reps: string | null;
+  actual_weight_kg: number | null;
   sort_order: number;
 };
 
@@ -100,6 +103,13 @@ export type DietComment = {
   comment: string;
   trainer_reply: string | null;
   created_at: string;
+};
+
+export type MealDayCompletion = {
+  id: string;
+  client_id: string;
+  date: string;
+  completed_at: string;
 };
 
 export type Challenge = {
@@ -173,6 +183,7 @@ export type Database = {
       meals: Table<Meal, Partial<Meal>>;
       meal_ingredients: Table<MealIngredient, Partial<MealIngredient>>;
       diet_comments: Table<DietComment, Partial<DietComment>>;
+      meal_day_completions: Table<MealDayCompletion, Partial<MealDayCompletion>>;
       challenges: Table<Challenge, Partial<Challenge>>;
       challenge_participants: Table<ChallengeParticipant, Partial<ChallengeParticipant>>;
       community_posts: Table<CommunityPost, Partial<CommunityPost>>;

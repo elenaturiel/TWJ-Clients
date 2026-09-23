@@ -23,10 +23,14 @@ export function WorkoutDayCard({ workout }: { workout: WorkoutWithExercises | un
     );
   }
 
+  const done = workout.status === 'done';
+
   return (
     <Link
       href={`/semana/entreno/${workout.id}`}
-      className="card flex min-h-[140px] flex-col p-4 active:scale-[0.99]"
+      className={`card flex min-h-[140px] flex-col p-4 active:scale-[0.99] ${
+        done ? 'border-positive ring-1 ring-positive' : ''
+      }`}
     >
       <div className="text-xs font-semibold uppercase tracking-wide text-navy/50">
         {workout.day_label}

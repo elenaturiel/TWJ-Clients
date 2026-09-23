@@ -29,7 +29,9 @@ export function EntrenosTab({
           <Link
             key={d.iso}
             href={`/panel/${clientId}/entrenos/${d.workout.id}`}
-            className="card flex min-h-[140px] flex-col p-4 active:scale-[0.99]"
+            className={`card flex min-h-[140px] flex-col p-4 active:scale-[0.99] ${
+              d.workout.status === 'done' ? 'border-positive ring-1 ring-positive' : ''
+            }`}
           >
             <span className="text-xs font-semibold uppercase tracking-wide text-navy/50">
               {d.label}

@@ -34,6 +34,7 @@ export function WorkoutEditorForm({
   );
   const [newExercise, setNewExercise] = useState('');
   const [newSetsReps, setNewSetsReps] = useState('');
+  const [newWeight, setNewWeight] = useState('');
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
 
@@ -53,8 +54,9 @@ export function WorkoutEditorForm({
 
   const addExercise = () => {
     if (!newExercise.trim()) return;
+    const weight = newWeight ? Number(newWeight) : null;
     startTransition(async () => {
-      await addExerciseAction(workout.id, clientId, newExercise.trim(), newSetsReps.trim());
+      await addExerciseAction(workout.id, clientId, newExercise.trim(), newSetsReps.trim(), weight);
       setExercises((prev) => [
         ...prev,
         {
@@ -62,11 +64,15 @@ export function WorkoutEditorForm({
           workout_id: workout.id,
           name: newExercise.trim(),
           sets_reps: newSetsReps.trim() || null,
+          recommended_weight_kg: weight,
+          actual_sets_reps: null,
+          actual_weight_kg: null,
           sort_order: Date.now(),
         },
       ]);
       setNewExercise('');
       setNewSetsReps('');
+      setNewWeight('');
     });
   };
 
@@ -111,15 +117,25 @@ export function WorkoutEditorForm({
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-navy/50">
           Ejercicios
         </h3>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {exercises.map((ex) => (
-            <div key={ex.id} className="flex items-center justify-between rounded-card bg-bg px-3 py-2 text-sm">
-              <span>
-                {ex.name} {ex.sets_reps && <span className="text-navy/50">· {ex.sets_reps}</span>}
-              </span>
-              <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
-                ✕
-              </button>
+            <div key={ex.id} className="rounded-card bg-bg px-3 py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{ex.name}</span>
+                <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
+                  ✕
+                </button>
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-navy/60">
+                <span>
+                  Recomendado: {ex.sets_reps || '—'}
+                  {ex.recommended_weight_kg != null ? ` · ${ex.recommended_weight_kg} kg` : ''}
+                </span>
+                <span className={ex.actual_sets_reps || ex.actual_weight_kg != null ? 'font-semibold text-navy' : ''}>
+                  Real: {ex.actual_sets_reps || '—'}
+                  {ex.actual_weight_kg != null ? ` · ${ex.actual_weight_kg} kg` : ''}
+                </span>
+              </div>
             </div>
           ))}
           {exercises.length === 0 && (
@@ -134,10 +150,17 @@ export function WorkoutEditorForm({
             onChange={(e) => setNewExercise(e.target.value)}
           />
           <input
-            className="input sm:w-32"
-            placeholder="Series x reps (4x8)"
+            className="input sm:w-28"
+            placeholder="4x8"
             value={newSetsReps}
             onChange={(e) => setNewSetsReps(e.target.value)}
+          />
+          <input
+            className="input sm:w-24"
+            placeholder="Peso kg"
+            inputMode="decimal"
+            value={newWeight}
+            onChange={(e) => setNewWeight(e.target.value)}
           />
           <button onClick={addExercise} className="btn-secondary shrink-0">
             + Añadir

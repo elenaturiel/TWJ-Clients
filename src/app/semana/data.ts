@@ -17,10 +17,12 @@ export type MealWithIngredients = Meal & { meal_ingredients: MealIngredient[] };
 export interface SemanaData {
   weekStartISO: string;
   weekEndISO: string;
+  todayISO: string;
   workouts: WorkoutWithExercises[];
   weightLogs: WeightLog[];
   moodLogThisWeek: MoodLog | null;
   todayMeals: MealWithIngredients[];
+  todayMealsCompleted: boolean;
   dietCommentsThisWeek: DietComment[];
   qnaMessages: QnaMessage[];
   stats: {
@@ -30,6 +32,8 @@ export interface SemanaData {
   };
 }
 
+const STREAK_WINDOW_DAYS = 60;
+
 export async function getSemanaData(clientId: string): Promise<SemanaData> {
   const supabase = createClient();
   const weekStart = startOfWeek();
@@ -38,10 +42,13 @@ export async function getSemanaData(clientId: string): Promise<SemanaData> {
   const weekEndISO = toISODate(weekEnd);
   const todayISO = toISODate(new Date());
   const sixWeeksAgoISO = toISODate(addDays(weekStart, -42));
+  const streakSinceISO = toISODate(addDays(new Date(), -STREAK_WINDOW_DAYS));
 
   const [
     { data: workouts },
-    { data: recentWorkoutsForStreak },
+    { data: streakWorkouts },
+    { data: streakMeals },
+    { data: streakMealCompletions },
     { data: weightLogs },
     { data: moodLogs },
     { data: todayMeals },
@@ -59,9 +66,20 @@ export async function getSemanaData(clientId: string): Promise<SemanaData> {
       .from('workouts')
       .select('date, status')
       .eq('client_id', clientId)
-      .lte('date', todayISO)
-      .order('date', { ascending: false })
-      .limit(60),
+      .gte('date', streakSinceISO)
+      .lte('date', todayISO),
+    supabase
+      .from('meals')
+      .select('date')
+      .eq('client_id', clientId)
+      .gte('date', streakSinceISO)
+      .lte('date', todayISO),
+    supabase
+      .from('meal_day_completions')
+      .select('date')
+      .eq('client_id', clientId)
+      .gte('date', streakSinceISO)
+      .lte('date', todayISO),
     supabase
       .from('weight_logs')
       .select('*')
@@ -94,7 +112,11 @@ export async function getSemanaData(clientId: string): Promise<SemanaData> {
 
   const typedWorkouts = (workouts as WorkoutWithExercises[] | null) ?? [];
   const completedThisWeek = typedWorkouts.filter((w) => w.status === 'done').length;
-  const streakDays = computeStreak(recentWorkoutsForStreak ?? []);
+
+  const workoutStatusByDate = new Map((streakWorkouts ?? []).map((w) => [w.date, w.status]));
+  const mealDates = new Set((streakMeals ?? []).map((m) => m.date));
+  const completedMealDates = new Set((streakMealCompletions ?? []).map((c) => c.date));
+  const streakDays = computeStreak(workoutStatusByDate, mealDates, completedMealDates);
 
   let weightChangeKg: number | null = null;
   if (weightLogs && weightLogs.length >= 2) {
@@ -106,39 +128,52 @@ export async function getSemanaData(clientId: string): Promise<SemanaData> {
   return {
     weekStartISO,
     weekEndISO,
+    todayISO,
     workouts: typedWorkouts,
     weightLogs: weightLogs ?? [],
     moodLogThisWeek: (moodLogs as MoodLog | null) ?? null,
     todayMeals: (todayMeals as MealWithIngredients[] | null) ?? [],
+    todayMealsCompleted: completedMealDates.has(todayISO),
     dietCommentsThisWeek: dietComments ?? [],
     qnaMessages: qnaMessages ?? [],
     stats: { completedThisWeek, streakDays, weightChangeKg },
   };
 }
 
-function computeStreak(workoutsDesc: { date: string; status: string }[]): number {
+function computeStreak(
+  workoutStatusByDate: Map<string, string>,
+  mealDates: Set<string>,
+  completedMealDates: Set<string>
+): number {
   let streak = 0;
-  let expectedDate = new Date();
-  expectedDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  for (const w of workoutsDesc) {
-    const wDate = new Date(w.date + 'T00:00:00');
-    const diffDays = Math.round((expectedDate.getTime() - wDate.getTime()) / 86400000);
+  for (let i = 0; i < STREAK_WINDOW_DAYS; i++) {
+    const iso = toISODate(addDays(today, -i));
+    const workoutStatus = workoutStatusByDate.get(iso);
+    const hasWorkout = workoutStatus !== undefined;
+    const hasMeals = mealDates.has(iso);
 
-    if (diffDays === 0 || diffDays === 1) {
-      if (w.status === 'done') {
-        streak += 1;
-        expectedDate = wDate;
-      } else if (diffDays === 0) {
-        // hoy sin completar todavía: no rompe la racha, seguimos mirando ayer
-        expectedDate = addDays(wDate, -1);
-        continue;
-      } else {
-        break;
-      }
-    } else {
-      break;
+    if (!hasWorkout && !hasMeals) {
+      // Día sin nada planeado (descanso): ni rompe ni suma la racha.
+      continue;
     }
+
+    const workoutOk = !hasWorkout || workoutStatus === 'done';
+    const mealOk = !hasMeals || completedMealDates.has(iso);
+
+    if (workoutOk && mealOk) {
+      streak += 1;
+      continue;
+    }
+
+    if (i === 0) {
+      // Hoy, todavía sin completar del todo: no rompe la racha.
+      continue;
+    }
+
+    break;
   }
 
   return streak;

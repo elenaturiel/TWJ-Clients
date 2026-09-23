@@ -4,6 +4,8 @@ import { requireProfile } from '@/lib/auth/get-profile';
 import { createClient } from '@/lib/supabase/server';
 import { ClientAppShell } from '@/components/layout/ClientAppShell';
 import { RatingSlider } from '@/components/semana/RatingSlider';
+import { WorkoutCompletionToggle } from '@/components/semana/WorkoutCompletionToggle';
+import { ExerciseActualsList } from '@/components/semana/ExerciseActualsList';
 import { IconMessage } from '@/components/icons';
 import { dayLabelFull } from '@/lib/utils/date';
 import type { WorkoutWithExercises } from '@/app/semana/data';
@@ -12,12 +14,6 @@ const STATUS_LABEL: Record<string, string> = {
   done: 'Hecho',
   today: 'Hoy',
   pending: 'Pendiente',
-};
-
-const STATUS_DOT: Record<string, string> = {
-  done: 'bg-positive',
-  today: 'bg-amber',
-  pending: 'bg-navy/25',
 };
 
 export default async function WorkoutDetailPage({ params }: { params: { workoutId: string } }) {
@@ -35,7 +31,7 @@ export default async function WorkoutDetailPage({ params }: { params: { workoutI
 
   const typed = workout as WorkoutWithExercises;
   const exercises = [...typed.workout_exercises].sort((a, b) => a.sort_order - b.sort_order);
-  const showRating = typed.status !== 'pending';
+  const done = typed.status === 'done';
   const date = new Date(typed.date + 'T00:00:00');
 
   return (
@@ -45,28 +41,29 @@ export default async function WorkoutDetailPage({ params }: { params: { workoutI
           ← Volver a tu semana
         </Link>
 
-        <div className="card mt-4 p-5 sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-navy/50">
-            {dayLabelFull(date)}
-          </p>
-          <h1 className="mt-1 text-3xl">{typed.title}</h1>
-
-          <div className="mt-3 flex items-center gap-2 text-sm font-semibold">
-            <span className={`status-dot ${STATUS_DOT[typed.status]}`} />
-            {STATUS_LABEL[typed.status]}
+        <div
+          className={`card mt-4 p-5 transition-colors sm:p-6 ${
+            done ? 'border-positive ring-1 ring-positive' : ''
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-navy/50">
+                {dayLabelFull(date)}
+              </p>
+              <h1 className="mt-1 text-3xl">{typed.title}</h1>
+              {!done && (
+                <p className="mt-1 text-xs font-semibold text-navy/50">
+                  {STATUS_LABEL[typed.status]}
+                </p>
+              )}
+            </div>
+            <WorkoutCompletionToggle workoutId={typed.id} date={typed.date} initialDone={done} />
           </div>
 
-          <ul className="mt-5 divide-y divide-line">
-            {exercises.length === 0 && (
-              <li className="py-3 text-sm text-navy/40">Todavía no hay ejercicios en este entreno.</li>
-            )}
-            {exercises.map((ex) => (
-              <li key={ex.id} className="flex items-center justify-between py-3 text-sm">
-                <span>{ex.name}</span>
-                {ex.sets_reps && <span className="font-semibold text-navy/60">{ex.sets_reps}</span>}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-5">
+            <ExerciseActualsList exercises={exercises} />
+          </div>
 
           {typed.trainer_comment && (
             <div className="mt-5 flex items-start gap-2 rounded-card bg-bg p-3 text-sm text-navy/70">
@@ -75,11 +72,9 @@ export default async function WorkoutDetailPage({ params }: { params: { workoutI
             </div>
           )}
 
-          {showRating && (
-            <div className="mt-6 border-t border-line pt-5">
-              <RatingSlider workoutId={typed.id} initialRating={typed.client_rating} />
-            </div>
-          )}
+          <div className="mt-6 border-t border-line pt-5">
+            <RatingSlider workoutId={typed.id} initialRating={typed.client_rating} />
+          </div>
         </div>
       </div>
     </ClientAppShell>

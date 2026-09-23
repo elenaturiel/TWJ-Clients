@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { createClient } from '@/lib/supabase/server';
 import { ClientAppShell } from '@/components/layout/ClientAppShell';
+import { MealDayCompletionToggle } from '@/components/semana/MealDayCompletionToggle';
 import { startOfWeek, weekDates, toISODate, dayLabel, dayLabelFull } from '@/lib/utils/date';
 import type { Meal } from '@/lib/types/database.types';
 
@@ -18,13 +19,21 @@ export default async function MenuSemanalPage() {
   const weekEndISO = toISODate(days[6]);
   const todayISO = toISODate(new Date());
 
-  const { data: meals } = await supabase
-    .from('meals')
-    .select('*')
-    .eq('client_id', profile.id)
-    .gte('date', weekStartISO)
-    .lte('date', weekEndISO)
-    .order('date', { ascending: true });
+  const [{ data: meals }, { data: completions }] = await Promise.all([
+    supabase
+      .from('meals')
+      .select('*')
+      .eq('client_id', profile.id)
+      .gte('date', weekStartISO)
+      .lte('date', weekEndISO)
+      .order('date', { ascending: true }),
+    supabase
+      .from('meal_day_completions')
+      .select('date')
+      .eq('client_id', profile.id)
+      .gte('date', weekStartISO)
+      .lte('date', weekEndISO),
+  ]);
 
   const mealsByDate = new Map<string, Meal[]>();
   for (const meal of meals ?? []) {
@@ -32,6 +41,7 @@ export default async function MenuSemanalPage() {
     list.push(meal);
     mealsByDate.set(meal.date, list);
   }
+  const completedDates = new Set((completions ?? []).map((c) => c.date));
 
   return (
     <ClientAppShell fullName={profile.full_name}>
@@ -52,11 +62,18 @@ export default async function MenuSemanalPage() {
             );
             const totalKcal = dayMeals.reduce((sum, m) => sum + m.kcal, 0);
             const isToday = iso === todayISO;
+            const isCompleted = completedDates.has(iso);
 
             return (
               <div
                 key={iso}
-                className={`card flex flex-col p-3 ${isToday ? 'border-accent ring-1 ring-accent' : ''}`}
+                className={`card flex flex-col p-3 ${
+                  isCompleted
+                    ? 'border-positive ring-1 ring-positive'
+                    : isToday
+                      ? 'border-accent ring-1 ring-accent'
+                      : ''
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-navy/50">
@@ -82,8 +99,9 @@ export default async function MenuSemanalPage() {
                 </ul>
 
                 {dayMeals.length > 0 && (
-                  <div className="mt-2 border-t border-line pt-2 text-sm font-semibold">
+                  <div className="mt-2 flex items-center justify-between border-t border-line pt-2 text-sm font-semibold">
                     {totalKcal} kcal
+                    <MealDayCompletionToggle date={iso} initialDone={isCompleted} compact />
                   </div>
                 )}
 

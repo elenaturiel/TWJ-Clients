@@ -8,7 +8,9 @@ import { WeightForm } from '@/components/semana/WeightForm';
 import { MoodSlider } from '@/components/semana/MoodSlider';
 import { MealCard } from '@/components/semana/MealCard';
 import { DietCommentForm } from '@/components/semana/DietCommentForm';
+import { MealDayCompletionToggle } from '@/components/semana/MealDayCompletionToggle';
 import { QnaChat } from '@/components/QnaChat';
+import { IconFlame } from '@/components/icons';
 import { sendQnaMessageAction } from './actions';
 import { startOfWeek, weekDates, toISODate, formatWeekRange } from '@/lib/utils/date';
 
@@ -48,7 +50,13 @@ export default async function SemanaPage() {
 
           <div className="mt-6 grid grid-cols-3 gap-4 max-w-md">
             <Stat label="Entrenos" value={String(data.stats.completedThisWeek)} />
-            <Stat label="Racha" value={`${data.stats.streakDays}d`} />
+            <div>
+              <div className="flex items-center gap-1 text-2xl font-display">
+                {data.stats.streakDays > 0 && <IconFlame className="h-5 w-5 text-amber" />}
+                {data.stats.streakDays}d
+              </div>
+              <div className="text-xs uppercase tracking-wide text-white/50">Racha</div>
+            </div>
             <Stat
               label="Peso semanal"
               value={
@@ -93,7 +101,7 @@ export default async function SemanaPage() {
         </section>
 
         <section>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl">Tu menú de hoy</h2>
             <Link href="/semana/menu" className="text-sm font-semibold text-accent">
               Ver semana completa →
@@ -106,11 +114,18 @@ export default async function SemanaPage() {
             </p>
           ) : (
             <>
-              <div className="card mb-3 flex flex-wrap gap-4 p-3 text-sm">
-                <span className="font-semibold">{totals.kcal} kcal</span>
-                <span className="text-navy/60">P {totals.protein.toFixed(0)}g</span>
-                <span className="text-navy/60">HC {totals.carbs.toFixed(0)}g</span>
-                <span className="text-navy/60">G {totals.fat.toFixed(0)}g</span>
+              <div
+                className={`card mb-3 flex flex-wrap items-center justify-between gap-3 p-3 text-sm ${
+                  data.todayMealsCompleted ? 'border-positive ring-1 ring-positive' : ''
+                }`}
+              >
+                <div className="flex flex-wrap gap-4">
+                  <span className="font-semibold">{totals.kcal} kcal</span>
+                  <span className="text-navy/60">P {totals.protein.toFixed(0)}g</span>
+                  <span className="text-navy/60">HC {totals.carbs.toFixed(0)}g</span>
+                  <span className="text-navy/60">G {totals.fat.toFixed(0)}g</span>
+                </div>
+                <MealDayCompletionToggle date={data.todayISO} initialDone={data.todayMealsCompleted} />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {todayMealsSorted.map((meal) => (

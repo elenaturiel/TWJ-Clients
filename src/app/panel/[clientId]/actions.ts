@@ -75,11 +75,21 @@ export async function upsertWorkoutAction(input: {
   return { error: null, workoutId: workout.id as string };
 }
 
-export async function addExerciseAction(workoutId: string, clientId: string, name: string, setsReps: string) {
+export async function addExerciseAction(
+  workoutId: string,
+  clientId: string,
+  name: string,
+  setsReps: string,
+  recommendedWeightKg: number | null
+) {
   const supabase = await trainerClient();
-  const { error } = await supabase
-    .from('workout_exercises')
-    .insert({ workout_id: workoutId, name, sets_reps: setsReps || null, sort_order: Date.now() });
+  const { error } = await supabase.from('workout_exercises').insert({
+    workout_id: workoutId,
+    name,
+    sets_reps: setsReps || null,
+    recommended_weight_kg: recommendedWeightKg,
+    sort_order: Date.now(),
+  });
   if (error) return { error: error.message };
   revalidatePath(`/panel/${clientId}`);
   return { error: null };

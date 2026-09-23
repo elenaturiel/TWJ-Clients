@@ -46,7 +46,10 @@ create table workout_exercises (
   id uuid primary key default gen_random_uuid(),
   workout_id uuid references workouts(id) on delete cascade,
   name text not null,
-  sets_reps text, -- ej. '4x8'
+  sets_reps text, -- recomendado por Jaime, ej. '4x8'
+  recommended_weight_kg numeric(6,2), -- recomendado por Jaime
+  actual_sets_reps text, -- lo que el cliente hizo de verdad
+  actual_weight_kg numeric(6,2), -- lo que el cliente levantó de verdad
   sort_order int default 0
 );
 
@@ -114,6 +117,15 @@ create table diet_comments (
   created_at timestamptz default now()
 );
 
+-- El cliente marca un día como "menú seguido"; una fila por cliente y día.
+create table meal_day_completions (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid references profiles(id) on delete cascade,
+  date date not null,
+  completed_at timestamptz default now(),
+  unique (client_id, date)
+);
+
 -- COMUNIDAD Y RETOS
 create table challenges (
   id uuid primary key default gen_random_uuid(),
@@ -177,6 +189,7 @@ create index weight_logs_client_idx on weight_logs (client_id, logged_at desc);
 create index mood_logs_client_idx on mood_logs (client_id, week_start desc);
 create index qna_messages_client_idx on qna_messages (client_id, created_at);
 create index diet_comments_client_week_idx on diet_comments (client_id, week_start);
+create index meal_day_completions_client_idx on meal_day_completions (client_id, date desc);
 create index challenge_participants_challenge_idx on challenge_participants (challenge_id);
 create index post_comments_post_idx on post_comments (post_id, created_at);
 create index post_likes_post_idx on post_likes (post_id);
@@ -251,9 +264,9 @@ create trigger profiles_prevent_escalation
   before update on profiles
   for each row execute function prevent_profile_privilege_escalation();
 
--- Un cliente solo puede tocar `client_rating` en sus entrenos; el resto de
--- campos (título, comentario del entrenador, estado...) son de solo lectura
--- para él y solo Jaime puede modificarlos.
+-- Un cliente puede tocar `client_rating` y marcar `status` como hecho/no
+-- hecho en sus propios entrenos; el resto de campos (título, comentario del
+-- entrenador, día...) son de solo lectura para él y solo Jaime los edita.
 create or replace function restrict_workout_client_updates()
 returns trigger
 language plpgsql
@@ -264,7 +277,6 @@ begin
   if auth.uid() is not null and not is_trainer(auth.uid()) then
     new.title := old.title;
     new.trainer_comment := old.trainer_comment;
-    new.status := old.status;
     new.date := old.date;
     new.day_label := old.day_label;
     new.created_by := old.created_by;
@@ -277,6 +289,31 @@ $$;
 create trigger workouts_restrict_client_updates
   before update on workouts
   for each row execute function restrict_workout_client_updates();
+
+-- Un cliente solo puede rellenar lo que hizo de verdad (peso y series/reps
+-- reales) en los ejercicios de sus propios entrenos; el resto (nombre,
+-- recomendación de Jaime...) es de solo lectura para él.
+create or replace function restrict_exercise_client_updates()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not is_trainer(auth.uid()) then
+    new.workout_id := old.workout_id;
+    new.name := old.name;
+    new.sets_reps := old.sets_reps;
+    new.recommended_weight_kg := old.recommended_weight_kg;
+    new.sort_order := old.sort_order;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger workout_exercises_restrict_client_updates
+  before update on workout_exercises
+  for each row execute function restrict_exercise_client_updates();
 
 -- Un cliente puede reportar su propio progreso en un reto, pero solo Jaime
 -- (o la lógica de servidor) puede marcarlo como completado.
@@ -315,6 +352,7 @@ alter table qna_messages enable row level security;
 alter table meals enable row level security;
 alter table meal_ingredients enable row level security;
 alter table diet_comments enable row level security;
+alter table meal_day_completions enable row level security;
 alter table challenges enable row level security;
 alter table challenge_participants enable row level security;
 alter table community_posts enable row level security;
@@ -368,6 +406,24 @@ create policy "workout_exercises_write_trainer" on workout_exercises
   for all to authenticated
   using (is_trainer(auth.uid()))
   with check (is_trainer(auth.uid()));
+
+-- El cliente puede actualizar sus propios ejercicios (el trigger de arriba
+-- limita esa actualización a los campos "actual_*"); no puede insertar ni
+-- borrar ejercicios, solo Jaime.
+create policy "workout_exercises_client_update" on workout_exercises
+  for update to authenticated
+  using (
+    exists (
+      select 1 from workouts w
+      where w.id = workout_exercises.workout_id and w.client_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from workouts w
+      where w.id = workout_exercises.workout_id and w.client_id = auth.uid()
+    )
+  );
 
 -- ---- weight_logs ----
 create policy "weight_logs_select" on weight_logs
@@ -449,6 +505,19 @@ create policy "diet_comments_insert_client" on diet_comments
 create policy "diet_comments_update_trainer" on diet_comments
   for update to authenticated
   using (is_trainer(auth.uid()));
+
+-- ---- meal_day_completions ----
+create policy "meal_day_completions_select" on meal_day_completions
+  for select to authenticated
+  using (client_id = auth.uid() or is_trainer(auth.uid()));
+
+create policy "meal_day_completions_insert_own" on meal_day_completions
+  for insert to authenticated
+  with check (client_id = auth.uid());
+
+create policy "meal_day_completions_delete_own" on meal_day_completions
+  for delete to authenticated
+  using (client_id = auth.uid());
 
 -- ---- challenges ----
 create policy "challenges_select_authenticated" on challenges
