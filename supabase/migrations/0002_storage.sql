@@ -9,6 +9,18 @@ values
   ('community', 'community', true)
 on conflict (id) do nothing;
 
+-- Vídeos/fotos de demostración de ejercicios; limitado a 50MB por archivo
+-- para no agotar la cuota gratuita de Storage con vídeos grandes.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'exercise-media',
+  'exercise-media',
+  true,
+  52428800,
+  array['video/mp4', 'video/quicktime', 'video/webm', 'image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do nothing;
+
 -- Lectura pública de las tres carpetas
 do $$ begin
   create policy "public_read_avatars" on storage.objects
@@ -52,5 +64,19 @@ do $$ begin
     for all to authenticated
     using (bucket_id = 'community' and is_trainer(auth.uid()))
     with check (bucket_id = 'community' and is_trainer(auth.uid()));
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create policy "public_read_exercise_media" on storage.objects
+    for select using (bucket_id = 'exercise-media');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create policy "exercise_media_write_trainer" on storage.objects
+    for all to authenticated
+    using (bucket_id = 'exercise-media' and is_trainer(auth.uid()))
+    with check (bucket_id = 'exercise-media' and is_trainer(auth.uid()));
 exception when duplicate_object then null;
 end $$;

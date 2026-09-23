@@ -34,6 +34,13 @@ export default async function WorkoutDetailPage({ params }: { params: { workoutI
   const done = typed.status === 'done';
   const date = new Date(typed.date + 'T00:00:00');
 
+  const mediaIds = [...new Set(exercises.map((ex) => ex.media_id).filter((id): id is string => !!id))];
+  const { data: mediaRows } =
+    mediaIds.length > 0
+      ? await supabase.from('exercise_media').select('*').in('id', mediaIds)
+      : { data: [] };
+  const mediaById = Object.fromEntries((mediaRows ?? []).map((m) => [m.id, m]));
+
   return (
     <ClientAppShell fullName={profile.full_name}>
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -62,7 +69,7 @@ export default async function WorkoutDetailPage({ params }: { params: { workoutI
           </div>
 
           <div className="mt-5">
-            <ExerciseActualsList exercises={exercises} />
+            <ExerciseActualsList exercises={exercises} mediaById={mediaById} />
           </div>
 
           {typed.trainer_comment && (

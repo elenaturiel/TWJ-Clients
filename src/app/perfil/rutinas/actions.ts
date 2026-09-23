@@ -62,6 +62,17 @@ export async function addTemplateExerciseAction(
   return { error: null, exercise: data };
 }
 
+export async function updateTemplateExerciseMediaAction(exerciseId: string, mediaId: string | null) {
+  const { supabase } = await trainerClient();
+  const { error } = await supabase
+    .from('routine_template_exercises')
+    .update({ media_id: mediaId })
+    .eq('id', exerciseId);
+  if (error) return { error: error.message };
+  revalidatePath('/perfil/rutinas');
+  return { error: null };
+}
+
 export async function removeTemplateExerciseAction(exerciseId: string) {
   const { supabase } = await trainerClient();
   const { error } = await supabase.from('routine_template_exercises').delete().eq('id', exerciseId);

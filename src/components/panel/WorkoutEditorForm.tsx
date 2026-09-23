@@ -5,10 +5,11 @@ import {
   upsertWorkoutAction,
   addExerciseAction,
   updateExerciseAction,
+  updateExerciseMediaAction,
   removeExerciseAction,
   applyTemplateToWorkoutAction,
 } from '@/app/panel/[clientId]/actions';
-import type { WorkoutStatus, WorkoutExercise } from '@/lib/types/database.types';
+import type { WorkoutStatus, WorkoutExercise, ExerciseMedia } from '@/lib/types/database.types';
 import type { WorkoutWithExercises, ExerciseSuggestion } from '@/app/panel/[clientId]/data';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
 
@@ -25,6 +26,7 @@ export function WorkoutEditorForm({
   workout,
   templates,
   suggestions,
+  media,
 }: {
   clientId: string;
   date: string;
@@ -32,6 +34,7 @@ export function WorkoutEditorForm({
   workout: WorkoutWithExercises;
   templates: TemplateWithExercises[];
   suggestions: Record<string, ExerciseSuggestion>;
+  media: ExerciseMedia[];
 }) {
   const [title, setTitle] = useState(workout.title);
   const [status, setStatus] = useState<WorkoutStatus>(workout.status);
@@ -109,6 +112,7 @@ export function WorkoutEditorForm({
           recommended_weight_kg: weight,
           actual_sets_reps: null,
           actual_weight_kg: null,
+          media_id: null,
           sort_order: Date.now(),
         },
       ]);
@@ -201,6 +205,7 @@ export function WorkoutEditorForm({
               key={ex.id}
               exercise={ex}
               clientId={clientId}
+              media={media}
               onUpdated={updateExercise}
               onRemove={() => removeExercise(ex.id)}
             />
@@ -265,11 +270,13 @@ export function WorkoutEditorForm({
 function ExerciseEditRow({
   exercise,
   clientId,
+  media,
   onUpdated,
   onRemove,
 }: {
   exercise: WorkoutExercise;
   clientId: string;
+  media: ExerciseMedia[];
   onUpdated: (updated: WorkoutExercise) => void;
   onRemove: () => void;
 }) {
@@ -278,9 +285,21 @@ function ExerciseEditRow({
   const [weight, setWeight] = useState(
     exercise.recommended_weight_kg != null ? String(exercise.recommended_weight_kg) : ''
   );
+  const [mediaId, setMediaId] = useState(exercise.media_id ?? '');
+  const [isSavingMedia, startSavingMedia] = useTransition();
   const [dirty, setDirty] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const selectedMedia = media.find((m) => m.id === (exercise.media_id ?? ''));
+
+  const changeMedia = (value: string) => {
+    setMediaId(value);
+    startSavingMedia(async () => {
+      const result = await updateExerciseMediaAction(exercise.id, clientId, value || null);
+      if (!result.error) onUpdated({ ...exercise, media_id: value || null });
+    });
+  };
 
   const save = () => {
     if (!name.trim()) return;
@@ -343,6 +362,28 @@ function ExerciseEditRow({
           Real: {exercise.actual_sets_reps || '—'}
           {exercise.actual_weight_kg != null ? ` · ${exercise.actual_weight_kg} kg` : ''}
         </p>
+      )}
+      {media.length > 0 && (
+        <div className="mt-2 flex items-center gap-2">
+          <select
+            className="input w-auto py-1 text-xs"
+            value={mediaId}
+            onChange={(e) => changeMedia(e.target.value)}
+            disabled={isSavingMedia}
+          >
+            <option value="">Sin vídeo/foto</option>
+            {media.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
+          {selectedMedia && (
+            <a href={selectedMedia.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent">
+              Ver →
+            </a>
+          )}
+        </div>
       )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>

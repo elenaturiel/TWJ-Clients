@@ -2,11 +2,15 @@ import Link from 'next/link';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { TrainerAppShell } from '@/components/layout/TrainerAppShell';
 import { getRoutineTemplates } from './data';
+import { getExerciseMedia } from '@/app/perfil/ejercicios/data';
 import { RoutineTemplatesManager } from '@/components/perfil/RoutineTemplatesManager';
 
 export default async function RutinasPage() {
   const profile = await requireProfile('trainer');
-  const templates = await getRoutineTemplates(profile.id);
+  const [templates, media] = await Promise.all([
+    getRoutineTemplates(profile.id),
+    getExerciseMedia(profile.id),
+  ]);
 
   return (
     <TrainerAppShell fullName={profile.full_name}>
@@ -20,7 +24,7 @@ export default async function RutinasPage() {
           entreno. Cada cliente guarda luego su propia copia editable, independiente de la
           plantilla.
         </p>
-        <RoutineTemplatesManager templates={templates} />
+        <RoutineTemplatesManager templates={templates} media={media} />
       </div>
     </TrainerAppShell>
   );

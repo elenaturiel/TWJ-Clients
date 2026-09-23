@@ -34,12 +34,21 @@ export default async function PerfilPage() {
       </div>
 
       {profile.role === 'trainer' && (
-        <section className="mt-6">
+        <section className="mt-6 space-y-3">
           <Link href="/perfil/rutinas" className="card flex items-center justify-between p-4 hover:border-accent">
             <div>
               <h2 className="text-lg font-display normal-case tracking-normal">Rutinas estándar</h2>
               <p className="text-sm text-navy/60">
                 Crea rutinas reutilizables y aplícalas a cualquier cliente en un clic.
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-accent">Gestionar →</span>
+          </Link>
+          <Link href="/perfil/ejercicios" className="card flex items-center justify-between p-4 hover:border-accent">
+            <div>
+              <h2 className="text-lg font-display normal-case tracking-normal">Vídeos y fotos de ejercicios</h2>
+              <p className="text-sm text-navy/60">
+                Sube demostraciones y adjúntalas a los ejercicios de cualquier rutina.
               </p>
             </div>
             <span className="text-sm font-semibold text-accent">Gestionar →</span>

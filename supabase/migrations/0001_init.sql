@@ -11,6 +11,7 @@ create type sender_role as enum ('client', 'trainer');
 create type meal_type as enum ('desayuno', 'snack1', 'comida', 'snack2', 'cena');
 create type challenge_status as enum ('active', 'closed');
 create type post_type as enum ('recipe', 'blog', 'achievement');
+create type exercise_media_type as enum ('video', 'image');
 
 -- =========================================================================
 -- TABLAS
@@ -42,6 +43,17 @@ create table workouts (
   created_at timestamptz default now()
 );
 
+-- BIBLIOTECA DE VÍDEOS/FOTOS DE EJERCICIOS (subida por Jaime, adjuntable a
+-- cualquier ejercicio de cualquier rutina o cliente)
+create table exercise_media (
+  id uuid primary key default gen_random_uuid(),
+  trainer_id uuid references profiles(id) on delete cascade,
+  title text not null,
+  media_type exercise_media_type not null,
+  url text not null,
+  created_at timestamptz default now()
+);
+
 create table workout_exercises (
   id uuid primary key default gen_random_uuid(),
   workout_id uuid references workouts(id) on delete cascade,
@@ -50,6 +62,7 @@ create table workout_exercises (
   recommended_weight_kg numeric(6,2), -- recomendado por Jaime
   actual_sets_reps text, -- lo que el cliente hizo de verdad
   actual_weight_kg numeric(6,2), -- lo que el cliente levantó de verdad
+  media_id uuid references exercise_media(id) on delete set null,
   sort_order bigint default 0 -- se rellena con Date.now() desde la app
 );
 
@@ -67,6 +80,7 @@ create table routine_template_exercises (
   name text not null,
   sets_reps text,
   recommended_weight_kg numeric(6,2),
+  media_id uuid references exercise_media(id) on delete set null,
   sort_order bigint default 0
 );
 
@@ -209,6 +223,7 @@ create index diet_comments_client_week_idx on diet_comments (client_id, week_sta
 create index meal_day_completions_client_idx on meal_day_completions (client_id, date desc);
 create index routine_templates_trainer_idx on routine_templates (trainer_id, created_at desc);
 create index routine_template_exercises_template_idx on routine_template_exercises (template_id);
+create index exercise_media_trainer_idx on exercise_media (trainer_id, created_at desc);
 create index challenge_participants_challenge_idx on challenge_participants (challenge_id);
 create index post_comments_post_idx on post_comments (post_id, created_at);
 create index post_likes_post_idx on post_likes (post_id);
@@ -324,6 +339,7 @@ begin
     new.name := old.name;
     new.sets_reps := old.sets_reps;
     new.recommended_weight_kg := old.recommended_weight_kg;
+    new.media_id := old.media_id;
     new.sort_order := old.sort_order;
   end if;
   return new;
@@ -374,6 +390,7 @@ alter table diet_comments enable row level security;
 alter table meal_day_completions enable row level security;
 alter table routine_templates enable row level security;
 alter table routine_template_exercises enable row level security;
+alter table exercise_media enable row level security;
 alter table challenges enable row level security;
 alter table challenge_participants enable row level security;
 alter table community_posts enable row level security;
@@ -562,6 +579,18 @@ create policy "routine_template_exercises_trainer_all" on routine_template_exerc
       where t.id = routine_template_exercises.template_id and t.trainer_id = auth.uid()
     )
   );
+
+-- ---- exercise_media ----
+-- Lectura abierta a cualquier autenticado (los clientes necesitan ver el
+-- vídeo/foto adjunto a sus propios ejercicios); solo Jaime sube o borra.
+create policy "exercise_media_select_authenticated" on exercise_media
+  for select to authenticated
+  using (true);
+
+create policy "exercise_media_write_trainer" on exercise_media
+  for all to authenticated
+  using (is_trainer(auth.uid()) and trainer_id = auth.uid())
+  with check (is_trainer(auth.uid()) and trainer_id = auth.uid());
 
 -- ---- challenges ----
 create policy "challenges_select_authenticated" on challenges

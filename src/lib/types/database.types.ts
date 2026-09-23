@@ -9,6 +9,7 @@ export type SenderRole = 'client' | 'trainer';
 export type MealType = 'desayuno' | 'snack1' | 'comida' | 'snack2' | 'cena';
 export type ChallengeStatus = 'active' | 'closed';
 export type PostType = 'recipe' | 'blog' | 'achievement';
+export type ExerciseMediaType = 'video' | 'image';
 
 export type Profile = {
   id: string;
@@ -42,6 +43,7 @@ export type WorkoutExercise = {
   recommended_weight_kg: number | null;
   actual_sets_reps: string | null;
   actual_weight_kg: number | null;
+  media_id: string | null;
   sort_order: number;
 };
 
@@ -58,7 +60,17 @@ export type RoutineTemplateExercise = {
   name: string;
   sets_reps: string | null;
   recommended_weight_kg: number | null;
+  media_id: string | null;
   sort_order: number;
+};
+
+export type ExerciseMedia = {
+  id: string;
+  trainer_id: string;
+  title: string;
+  media_type: ExerciseMediaType;
+  url: string;
+  created_at: string;
 };
 
 export type WeightLog = {
@@ -194,6 +206,7 @@ export type Database = {
       workout_exercises: Table<WorkoutExercise, Partial<WorkoutExercise>>;
       routine_templates: Table<RoutineTemplate, Partial<RoutineTemplate> & { trainer_id: string; title: string }>;
       routine_template_exercises: Table<RoutineTemplateExercise, Partial<RoutineTemplateExercise> & { template_id: string; name: string }>;
+      exercise_media: Table<ExerciseMedia, Partial<ExerciseMedia> & { trainer_id: string; title: string; media_type: ExerciseMediaType; url: string }>;
       weight_logs: Table<WeightLog, Partial<WeightLog>>;
       mood_logs: Table<MoodLog, Partial<MoodLog>>;
       trainer_private_notes: Table<TrainerPrivateNote, Partial<TrainerPrivateNote>>;

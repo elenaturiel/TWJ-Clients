@@ -2,9 +2,15 @@
 
 import { useState, useTransition } from 'react';
 import { updateExerciseActualAction } from '@/app/semana/actions';
-import type { WorkoutExercise } from '@/lib/types/database.types';
+import type { WorkoutExercise, ExerciseMedia } from '@/lib/types/database.types';
 
-export function ExerciseActualsList({ exercises }: { exercises: WorkoutExercise[] }) {
+export function ExerciseActualsList({
+  exercises,
+  mediaById,
+}: {
+  exercises: WorkoutExercise[];
+  mediaById: Record<string, ExerciseMedia>;
+}) {
   if (exercises.length === 0) {
     return <p className="py-3 text-sm text-navy/40">Todavía no hay ejercicios en este entreno.</p>;
   }
@@ -12,13 +18,13 @@ export function ExerciseActualsList({ exercises }: { exercises: WorkoutExercise[
   return (
     <ul className="divide-y divide-line">
       {exercises.map((ex) => (
-        <ExerciseRow key={ex.id} exercise={ex} />
+        <ExerciseRow key={ex.id} exercise={ex} media={ex.media_id ? mediaById[ex.media_id] : undefined} />
       ))}
     </ul>
   );
 }
 
-function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
+function ExerciseRow({ exercise, media }: { exercise: WorkoutExercise; media?: ExerciseMedia }) {
   const [setsReps, setSetsReps] = useState(exercise.actual_sets_reps ?? '');
   const [weight, setWeight] = useState(
     exercise.actual_weight_kg != null ? String(exercise.actual_weight_kg) : ''
@@ -43,6 +49,16 @@ function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
           {exercise.recommended_weight_kg != null ? ` · ${exercise.recommended_weight_kg} kg` : ''}
         </span>
       </div>
+      {media && (
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 inline-block text-xs font-semibold text-accent"
+        >
+          {media.media_type === 'video' ? 'Ver cómo se hace →' : 'Ver foto explicativa →'}
+        </a>
+      )}
       <div className="mt-2 flex flex-wrap items-end gap-2">
         <div>
           <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-navy/40">

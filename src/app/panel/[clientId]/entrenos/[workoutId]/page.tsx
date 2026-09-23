@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { WorkoutEditorForm } from '@/components/panel/WorkoutEditorForm';
 import { getRoutineTemplates } from '@/app/perfil/rutinas/data';
+import { getExerciseMedia } from '@/app/perfil/ejercicios/data';
 import { getClientExerciseSuggestions } from '@/app/panel/[clientId]/data';
 import { dayLabelFull } from '@/lib/utils/date';
 import type { WorkoutWithExercises } from '@/app/panel/[clientId]/data';
@@ -16,7 +17,7 @@ export default async function WorkoutEditPage({
   const trainer = await requireProfile('trainer');
   const supabase = createClient();
 
-  const [{ data: workout }, { data: client }, templates, suggestions] = await Promise.all([
+  const [{ data: workout }, { data: client }, templates, suggestions, media] = await Promise.all([
     supabase
       .from('workouts')
       .select('*, workout_exercises(*)')
@@ -26,6 +27,7 @@ export default async function WorkoutEditPage({
     supabase.from('profiles').select('full_name').eq('id', params.clientId).single(),
     getRoutineTemplates(trainer.id),
     getClientExerciseSuggestions(params.clientId),
+    getExerciseMedia(trainer.id),
   ]);
 
   if (!workout) notFound();
@@ -48,6 +50,7 @@ export default async function WorkoutEditPage({
           workout={typed}
           templates={templates}
           suggestions={suggestions}
+          media={media}
         />
       </div>
     </div>

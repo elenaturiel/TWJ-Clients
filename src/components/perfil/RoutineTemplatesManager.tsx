@@ -6,12 +6,19 @@ import {
   renameTemplateAction,
   deleteTemplateAction,
   addTemplateExerciseAction,
+  updateTemplateExerciseMediaAction,
   removeTemplateExerciseAction,
 } from '@/app/perfil/rutinas/actions';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
-import type { RoutineTemplateExercise } from '@/lib/types/database.types';
+import type { RoutineTemplateExercise, ExerciseMedia } from '@/lib/types/database.types';
 
-export function RoutineTemplatesManager({ templates }: { templates: TemplateWithExercises[] }) {
+export function RoutineTemplatesManager({
+  templates,
+  media,
+}: {
+  templates: TemplateWithExercises[];
+  media: ExerciseMedia[];
+}) {
   const [items, setItems] = useState(templates);
   const [newTitle, setNewTitle] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -74,7 +81,7 @@ export function RoutineTemplatesManager({ templates }: { templates: TemplateWith
       )}
 
       {items.map((template) => (
-        <TemplateCard key={template.id} template={template} onDelete={() => deleteTemplate(template.id)} />
+        <TemplateCard key={template.id} template={template} media={media} onDelete={() => deleteTemplate(template.id)} />
       ))}
     </div>
   );
@@ -82,9 +89,11 @@ export function RoutineTemplatesManager({ templates }: { templates: TemplateWith
 
 function TemplateCard({
   template,
+  media,
   onDelete,
 }: {
   template: TemplateWithExercises;
+  media: ExerciseMedia[];
   onDelete: () => void;
 }) {
   const [title, setTitle] = useState(template.title);
@@ -137,6 +146,19 @@ function TemplateCard({
     });
   };
 
+  const changeExerciseMedia = (exerciseId: string, mediaId: string) => {
+    startTransition(async () => {
+      const result = await updateTemplateExerciseMediaAction(exerciseId, mediaId || null);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setExercises((prev) =>
+        prev.map((e) => (e.id === exerciseId ? { ...e, media_id: mediaId || null } : e))
+      );
+    });
+  };
+
   return (
     <div className="card p-4 sm:p-5">
       <div className="flex items-center gap-2">
@@ -152,20 +174,46 @@ function TemplateCard({
       </div>
 
       <div className="mt-3 space-y-1.5">
-        {exercises.map((ex) => (
-          <div key={ex.id} className="flex items-center justify-between rounded-card bg-bg px-3 py-2 text-sm">
-            <span>
-              {ex.name}
-              {ex.sets_reps && <span className="text-navy/50"> · {ex.sets_reps}</span>}
-              {ex.recommended_weight_kg != null && (
-                <span className="text-navy/50"> · {ex.recommended_weight_kg} kg</span>
+        {exercises.map((ex) => {
+          const selectedMedia = media.find((m) => m.id === ex.media_id);
+          return (
+            <div key={ex.id} className="rounded-card bg-bg px-3 py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span>
+                  {ex.name}
+                  {ex.sets_reps && <span className="text-navy/50"> · {ex.sets_reps}</span>}
+                  {ex.recommended_weight_kg != null && (
+                    <span className="text-navy/50"> · {ex.recommended_weight_kg} kg</span>
+                  )}
+                </span>
+                <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
+                  ✕
+                </button>
+              </div>
+              {media.length > 0 && (
+                <div className="mt-1 flex items-center gap-2">
+                  <select
+                    className="input w-auto py-1 text-xs"
+                    value={ex.media_id ?? ''}
+                    onChange={(e) => changeExerciseMedia(ex.id, e.target.value)}
+                  >
+                    <option value="">Sin vídeo/foto</option>
+                    {media.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedMedia && (
+                    <a href={selectedMedia.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent">
+                      Ver →
+                    </a>
+                  )}
+                </div>
               )}
-            </span>
-            <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
-              ✕
-            </button>
-          </div>
-        ))}
+            </div>
+          );
+        })}
         {exercises.length === 0 && <p className="text-sm text-navy/40">Sin ejercicios todavía.</p>}
       </div>
 

@@ -73,6 +73,15 @@ export function IconMedal({ className }: IconProps) {
   );
 }
 
+export function IconBell({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
 export function IconFlame({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base}>

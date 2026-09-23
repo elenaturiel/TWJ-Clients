@@ -127,6 +127,7 @@ export async function applyTemplateToWorkoutAction(
       name: ex.name,
       sets_reps: known?.setsReps ?? ex.sets_reps,
       recommended_weight_kg: known?.weightKg ?? ex.recommended_weight_kg,
+      media_id: ex.media_id,
       sort_order: Date.now() + i,
     };
   });
@@ -136,6 +137,21 @@ export async function applyTemplateToWorkoutAction(
 
   revalidatePath(`/panel/${clientId}`);
   return { error: null, exercises: inserted };
+}
+
+export async function updateExerciseMediaAction(
+  exerciseId: string,
+  clientId: string,
+  mediaId: string | null
+) {
+  const supabase = await trainerClient();
+  const { error } = await supabase
+    .from('workout_exercises')
+    .update({ media_id: mediaId })
+    .eq('id', exerciseId);
+  if (error) return { error: error.message };
+  revalidatePath(`/panel/${clientId}`);
+  return { error: null };
 }
 
 export async function updateExerciseAction(
