@@ -23,7 +23,7 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: 'Train with Jaime',
-  description: 'Entrenamiento y nutrición personalizados para estudiantes. Si tú, quieres ganar?',
+  description: 'Entrenamiento y nutrición personalizados para estudiantes. Y tú, ¿quieres ganar?',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

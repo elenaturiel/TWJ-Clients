@@ -26,7 +26,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-4xl text-white">Train with Jaime</h1>
-          <p className="quote mt-2 text-lg">«si tú, quieres ganar?»</p>
+          <p className="quote mt-2 text-lg">Y tú, ¿quieres ganar?</p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="card space-y-4 p-6">
           <div>
@@ -35,7 +35,12 @@ export default function LoginPage() {
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold">Contraseña</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-sm font-semibold">Contraseña</label>
+              <Link href="/recuperar" className="text-xs font-semibold text-accent">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <input type="password" className="input" placeholder="••••••••" {...register('password')} />
             {errors.password && (
               <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>

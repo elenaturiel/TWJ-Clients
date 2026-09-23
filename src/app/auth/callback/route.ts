@@ -5,12 +5,17 @@ import { homePathForRole } from '@/lib/auth/get-profile';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const next = searchParams.get('next');
 
   if (code) {
     const supabase = createClient();
     const { data } = await supabase.auth.exchangeCodeForSession(code);
 
     if (data.user) {
+      if (next) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')

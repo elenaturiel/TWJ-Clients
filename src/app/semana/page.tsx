@@ -44,7 +44,7 @@ export default async function SemanaPage() {
             Foto — fondo de Jaime pendiente
           </p>
           <h1 className="mt-2 text-3xl sm:text-4xl">{formatWeekRange(weekStart)}</h1>
-          <p className="quote mt-1 text-lg">«si tú, quieres ganar?»</p>
+          <p className="quote mt-1 text-lg">Y tú, ¿quieres ganar?</p>
 
           <div className="mt-6 grid grid-cols-3 gap-4 max-w-md">
             <Stat label="Entrenos" value={String(data.stats.completedThisWeek)} />

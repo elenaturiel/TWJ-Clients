@@ -12,7 +12,7 @@ export default async function HomePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-navy px-4 text-center text-white">
       <h1 className="text-5xl sm:text-6xl">Train with Jaime</h1>
-      <p className="quote mt-4 text-xl sm:text-2xl">«si tú, quieres ganar?»</p>
+      <p className="quote mt-4 text-xl sm:text-2xl">Y tú, ¿quieres ganar?</p>
       <p className="mt-6 max-w-md text-white/70">
         Entrenamiento y nutrición personalizados para estudiantes universitarios en Pamplona.
         Sin postureo, con presupuesto de estudihambre.
