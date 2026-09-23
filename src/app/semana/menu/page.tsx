@@ -44,7 +44,7 @@ export default async function MenuSemanalPage() {
           Échale un ojo antes de ir a comprar. Nada de sorpresas de última hora.
         </p>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
           {days.map((d) => {
             const iso = toISODate(d);
             const dayMeals = (mealsByDate.get(iso) ?? []).sort(

@@ -15,7 +15,7 @@ export function NotasTab({
   qnaMessages: QnaMessage[];
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       <div className="card p-4">
         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-navy/60">
           Dudas del cliente

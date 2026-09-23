@@ -53,7 +53,7 @@ export default async function ClientDetailPage({
         <PrivateNotesBox clientId={params.clientId} initialNote={detail.privateNote?.note ?? ''} />
       </div>
 
-      <div className="mb-4 flex gap-2 border-b border-line">
+      <div className="mb-4 flex flex-wrap gap-2 border-b border-line">
         {TABS.map((t) => (
           <Link
             key={t.key}

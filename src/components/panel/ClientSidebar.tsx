@@ -6,7 +6,7 @@ const PLAN_LABEL: Record<string, string> = { rookie: 'Rookie', all_in: 'All In',
 
 export function ClientSidebar({ clients }: { clients: ClientListItem[] }) {
   return (
-    <aside className="w-full shrink-0 lg:w-64">
+    <aside className="w-full shrink-0 md:w-56 lg:w-64">
       <div className="card p-3">
         <div className="mb-2 flex items-center justify-between px-1">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-navy/50">Clientes</h2>

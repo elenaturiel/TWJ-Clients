@@ -71,7 +71,7 @@ export default async function SemanaPage() {
           </div>
         </section>
 
-        <section id="progreso" className="grid gap-4 lg:grid-cols-2">
+        <section id="progreso" className="grid gap-4 md:grid-cols-2">
           <div className="card p-5">
             <h2 className="mb-3 text-xl">Tu progreso</h2>
             <WeightChart logs={data.weightLogs} />
