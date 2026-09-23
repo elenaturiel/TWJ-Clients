@@ -114,6 +114,7 @@ function MealEditor({
   const [newIngredient, setNewIngredient] = useState('');
   const [newGrams, setNewGrams] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [ingredientError, setIngredientError] = useState<string | null>(null);
 
   const save = () => {
     if (!title.trim() || !kcal) return;
@@ -135,9 +136,14 @@ function MealEditor({
 
   const addIngredient = () => {
     if (!mealId || !newIngredient.trim()) return;
+    setIngredientError(null);
     startTransition(async () => {
       const grams = newGrams ? Number(newGrams) : null;
-      await addIngredientAction(mealId, clientId, newIngredient.trim(), grams);
+      const result = await addIngredientAction(mealId, clientId, newIngredient.trim(), grams);
+      if (result.error) {
+        setIngredientError(result.error);
+        return;
+      }
       setIngredients((prev) => [
         ...prev,
         { id: crypto.randomUUID(), meal_id: mealId, name: newIngredient.trim(), grams },
@@ -149,7 +155,11 @@ function MealEditor({
 
   const removeIngredient = (id: string) => {
     startTransition(async () => {
-      await removeIngredientAction(id, clientId);
+      const result = await removeIngredientAction(id, clientId);
+      if (result.error) {
+        setIngredientError(result.error);
+        return;
+      }
       setIngredients((prev) => prev.filter((i) => i.id !== id));
     });
   };
@@ -194,6 +204,7 @@ function MealEditor({
               +
             </button>
           </div>
+          {ingredientError && <p className="text-[11px] text-red-600">{ingredientError}</p>}
         </div>
       )}
 

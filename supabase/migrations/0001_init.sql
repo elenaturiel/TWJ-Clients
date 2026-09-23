@@ -50,7 +50,7 @@ create table workout_exercises (
   recommended_weight_kg numeric(6,2), -- recomendado por Jaime
   actual_sets_reps text, -- lo que el cliente hizo de verdad
   actual_weight_kg numeric(6,2), -- lo que el cliente levantó de verdad
-  sort_order int default 0
+  sort_order bigint default 0 -- se rellena con Date.now() desde la app
 );
 
 -- PROGRESO

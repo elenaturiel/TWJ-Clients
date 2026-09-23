@@ -37,6 +37,7 @@ export function WorkoutEditorForm({
   const [newWeight, setNewWeight] = useState('');
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
+  const [exerciseError, setExerciseError] = useState<string | null>(null);
 
   const save = () => {
     startTransition(async () => {
@@ -55,8 +56,19 @@ export function WorkoutEditorForm({
   const addExercise = () => {
     if (!newExercise.trim()) return;
     const weight = newWeight ? Number(newWeight) : null;
+    setExerciseError(null);
     startTransition(async () => {
-      await addExerciseAction(workout.id, clientId, newExercise.trim(), newSetsReps.trim(), weight);
+      const result = await addExerciseAction(
+        workout.id,
+        clientId,
+        newExercise.trim(),
+        newSetsReps.trim(),
+        weight
+      );
+      if (result.error) {
+        setExerciseError(result.error);
+        return;
+      }
       setExercises((prev) => [
         ...prev,
         {
@@ -78,7 +90,11 @@ export function WorkoutEditorForm({
 
   const removeExercise = (exerciseId: string) => {
     startTransition(async () => {
-      await removeExerciseAction(exerciseId, clientId);
+      const result = await removeExerciseAction(exerciseId, clientId);
+      if (result.error) {
+        setExerciseError(result.error);
+        return;
+      }
       setExercises((prev) => prev.filter((e) => e.id !== exerciseId));
     });
   };
@@ -166,6 +182,7 @@ export function WorkoutEditorForm({
             + Añadir
           </button>
         </div>
+        {exerciseError && <p className="mt-1 text-xs text-red-600">{exerciseError}</p>}
       </div>
 
       <div className="mt-5">
