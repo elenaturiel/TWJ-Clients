@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getClientDetail } from '../data';
@@ -35,16 +36,37 @@ export default async function ClientDetailPage({
     <div>
       <div className="card mb-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl">{detail.profile.full_name}</h1>
-            <p className="text-sm text-navy/60">
-              {detail.profile.plan ? PLAN_LABEL[detail.profile.plan] : 'Sin plan'} · Cliente desde{' '}
-              {detail.profile.client_since ?? '—'}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-accent/15">
+              {detail.profile.avatar_url ? (
+                <Image
+                  src={detail.profile.avatar_url}
+                  alt={detail.profile.full_name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-lg font-semibold text-accent">
+                  {detail.profile.full_name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl">{detail.profile.full_name}</h1>
+              <p className="text-sm text-navy/60">
+                {detail.profile.plan ? PLAN_LABEL[detail.profile.plan] : 'Sin plan'} · Cliente desde{' '}
+                {detail.profile.client_since ?? '—'}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-6 text-sm">
-            <Metric label="Adherencia" value={detail.adherencePct !== null ? `${detail.adherencePct}%` : '—'} />
-            <Metric label="Último peso" value={detail.lastWeight !== null ? `${detail.lastWeight} kg` : '—'} />
+          <div className="flex items-center gap-6">
+            <div className="flex gap-6 text-sm">
+              <Metric label="Adherencia" value={detail.adherencePct !== null ? `${detail.adherencePct}%` : '—'} />
+              <Metric label="Último peso" value={detail.lastWeight !== null ? `${detail.lastWeight} kg` : '—'} />
+            </div>
+            <a href={`/panel/${params.clientId}/export`} className="btn-secondary text-xs">
+              Exportar a Excel
+            </a>
           </div>
         </div>
       </div>

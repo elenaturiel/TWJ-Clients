@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { NavLink } from '@/components/layout/NavLink';
 import type { ClientListItem } from '@/app/panel/data';
@@ -27,8 +28,12 @@ export function ClientSidebar({ clients }: { clients: ClientListItem[] }) {
                   activeClassName="bg-navy text-white"
                   inactiveClassName="text-navy hover:bg-bg"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-xs font-semibold text-accent">
-                    {c.full_name.slice(0, 2).toUpperCase()}
+                  <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent/15 text-xs font-semibold text-accent">
+                    {c.avatar_url ? (
+                      <Image src={c.avatar_url} alt={c.full_name} fill className="object-cover" />
+                    ) : (
+                      c.full_name.slice(0, 2).toUpperCase()
+                    )}
                   </span>
                   <span className="flex-1 truncate">
                     <span className="block truncate font-semibold">{c.full_name}</span>

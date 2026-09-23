@@ -103,6 +103,11 @@ export function WorkoutEditorForm({
     <div className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-navy/50">{dayLabel}</span>
+        {workout.client_rating != null && (
+          <span className="rounded-card bg-bg px-2.5 py-1 text-xs font-semibold text-navy/70">
+            Cómo se sintió: {workout.client_rating}/10
+          </span>
+        )}
         <select
           className="input w-auto py-1.5 text-sm"
           value={status}

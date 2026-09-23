@@ -48,7 +48,14 @@ export function EntrenosTab({
                 <span className={`status-dot ${STATUS_DOT[d.workout.status]}`} />
                 {STATUS_LABEL[d.workout.status]}
               </div>
-              {d.workout.trainer_comment && <IconMessage className="h-4 w-4 text-navy/40" />}
+              <div className="flex items-center gap-1.5">
+                {d.workout.client_rating != null && (
+                  <span className="text-xs font-semibold text-navy/60">
+                    {d.workout.client_rating}/10
+                  </span>
+                )}
+                {d.workout.trainer_comment && <IconMessage className="h-4 w-4 text-navy/40" />}
+              </div>
             </div>
             <span className="mt-2 text-xs font-semibold text-accent">Editar →</span>
           </Link>
