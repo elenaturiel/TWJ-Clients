@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { NextResponse } from 'next/server';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { createClient } from '@/lib/supabase/server';
+import { dayLabelFull } from '@/lib/utils/date';
 import type { WorkoutWithExercises, MealWithIngredients } from '@/app/panel/[clientId]/data';
 
 const MEAL_LABEL: Record<string, string> = {
@@ -18,6 +19,36 @@ const STATUS_LABEL: Record<string, string> = {
   pending: 'Pendiente',
 };
 
+const PLAN_LABEL: Record<string, string> = { rookie: 'Rookie', all_in: 'All In', peak: 'Peak' };
+
+const NAVY = 'FF081A33';
+const LINE = 'FFE7EBF2';
+
+function styleHeaderRow(sheet: ExcelJS.Worksheet) {
+  const row = sheet.getRow(1);
+  row.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    cell.alignment = { vertical: 'middle' };
+    cell.border = { bottom: { style: 'thin', color: { argb: NAVY } } };
+  });
+  row.height = 20;
+  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: sheet.columnCount } };
+}
+
+function borderAllRows(sheet: ExcelJS.Worksheet) {
+  sheet.eachRow((row, rowNumber) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        ...cell.border,
+        bottom: { style: 'hair', color: { argb: LINE } },
+      };
+      if (rowNumber > 1) cell.alignment = { vertical: 'middle', wrapText: true };
+    });
+  });
+}
+
 export async function GET(_request: Request, { params }: { params: { clientId: string } }) {
   await requireProfile('trainer');
   const supabase = createClient();
@@ -30,7 +61,7 @@ export async function GET(_request: Request, { params }: { params: { clientId: s
     { data: moodLogs },
     { data: dietComments },
   ] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', params.clientId).single(),
+    supabase.from('profiles').select('*').eq('id', params.clientId).single(),
     supabase
       .from('weight_logs')
       .select('*')
@@ -64,79 +95,122 @@ export async function GET(_request: Request, { params }: { params: { clientId: s
 
   const typedWorkouts = (workouts as WorkoutWithExercises[] | null) ?? [];
   const typedMeals = (meals as MealWithIngredients[] | null) ?? [];
+  const typedWeightLogs = weightLogs ?? [];
+
+  const totalWorkouts = typedWorkouts.length;
+  const doneWorkouts = typedWorkouts.filter((w) => w.status === 'done').length;
+  const adherencePct = totalWorkouts > 0 ? Math.round((doneWorkouts / totalWorkouts) * 100) : null;
+  const firstWeight = typedWeightLogs[0]?.weight_kg ?? null;
+  const lastWeight = typedWeightLogs[typedWeightLogs.length - 1]?.weight_kg ?? null;
+  const weightChange = firstWeight != null && lastWeight != null ? Math.round((lastWeight - firstWeight) * 10) / 10 : null;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Train with Jaime';
   workbook.created = new Date();
 
+  // ===== RESUMEN =====
+  const resumenSheet = workbook.addWorksheet('Resumen');
+  resumenSheet.columns = [
+    { header: 'Dato', key: 'campo', width: 26 },
+    { header: 'Valor', key: 'valor', width: 30 },
+  ];
+  resumenSheet.addRows([
+    { campo: 'Nombre', valor: client.full_name },
+    { campo: 'Plan', valor: client.plan ? PLAN_LABEL[client.plan] : 'Sin plan' },
+    { campo: 'Cliente desde', valor: client.client_since ?? '—' },
+    { campo: 'Teléfono', valor: client.phone ?? '—' },
+    { campo: 'Peso inicial (kg)', valor: firstWeight ?? '—' },
+    { campo: 'Peso actual (kg)', valor: lastWeight ?? '—' },
+    { campo: 'Cambio de peso (kg)', valor: weightChange ?? '—' },
+    { campo: 'Entrenos registrados', valor: totalWorkouts },
+    { campo: 'Entrenos completados', valor: doneWorkouts },
+    { campo: 'Adherencia', valor: adherencePct != null ? `${adherencePct}%` : '—' },
+    { campo: 'Informe generado', valor: new Date().toLocaleDateString('es-ES') },
+  ]);
+  resumenSheet.getColumn('campo').font = { bold: true };
+  styleHeaderRow(resumenSheet);
+  borderAllRows(resumenSheet);
+
+  // ===== PESO =====
   const pesoSheet = workbook.addWorksheet('Peso');
   pesoSheet.columns = [
     { header: 'Fecha', key: 'fecha', width: 14 },
     { header: 'Peso (kg)', key: 'peso', width: 12 },
   ];
-  for (const log of weightLogs ?? []) {
+  for (const log of typedWeightLogs) {
     pesoSheet.addRow({ fecha: log.logged_at, peso: log.weight_kg });
   }
+  pesoSheet.getColumn('peso').numFmt = '0.0';
+  styleHeaderRow(pesoSheet);
+  borderAllRows(pesoSheet);
 
+  // ===== ENTRENOS (uno por fila; los ejercicios van en su propia hoja) =====
   const entrenosSheet = workbook.addWorksheet('Entrenos');
   entrenosSheet.columns = [
     { header: 'Fecha', key: 'fecha', width: 12 },
-    { header: 'Día', key: 'dia', width: 8 },
-    { header: 'Título', key: 'titulo', width: 22 },
+    { header: 'Día', key: 'dia', width: 12 },
+    { header: 'Entreno', key: 'titulo', width: 24 },
     { header: 'Estado', key: 'estado', width: 12 },
-    { header: 'Cómo se sintió (1-10)', key: 'sensacion', width: 18 },
+    { header: 'Sensación (1-10)', key: 'sensacion', width: 16 },
+    { header: 'Nº ejercicios', key: 'numEjercicios', width: 12 },
+    { header: 'Comentario de Jaime', key: 'comentario', width: 40 },
+  ];
+  for (const w of typedWorkouts) {
+    entrenosSheet.addRow({
+      fecha: w.date,
+      dia: dayLabelFull(new Date(w.date + 'T00:00:00')),
+      titulo: w.title,
+      estado: STATUS_LABEL[w.status] ?? w.status,
+      sensacion: w.client_rating ?? '',
+      numEjercicios: w.workout_exercises.length,
+      comentario: w.trainer_comment ?? '',
+    });
+  }
+  styleHeaderRow(entrenosSheet);
+  borderAllRows(entrenosSheet);
+
+  // ===== EJERCICIOS (recomendado vs. real, por entreno) =====
+  const ejerciciosSheet = workbook.addWorksheet('Ejercicios');
+  ejerciciosSheet.columns = [
+    { header: 'Fecha', key: 'fecha', width: 12 },
+    { header: 'Entreno', key: 'entreno', width: 22 },
     { header: 'Ejercicio', key: 'ejercicio', width: 22 },
-    { header: 'Series x reps (recomendado)', key: 'setsRepsRec', width: 22 },
+    { header: 'Series x reps recomendadas', key: 'setsRepsRec', width: 22 },
     { header: 'Peso recomendado (kg)', key: 'pesoRec', width: 18 },
-    { header: 'Series x reps (real)', key: 'setsRepsReal', width: 20 },
-    { header: 'Peso real (kg)', key: 'pesoReal', width: 14 },
-    { header: 'Comentario de Jaime', key: 'comentario', width: 30 },
+    { header: 'Series x reps reales', key: 'setsRepsReal', width: 20 },
+    { header: 'Peso real (kg)', key: 'pesoReal', width: 16 },
   ];
   for (const w of typedWorkouts) {
     const exercises = [...w.workout_exercises].sort((a, b) => a.sort_order - b.sort_order);
-    if (exercises.length === 0) {
-      entrenosSheet.addRow({
-        fecha: w.date,
-        dia: w.day_label,
-        titulo: w.title,
-        estado: STATUS_LABEL[w.status] ?? w.status,
-        sensacion: w.client_rating ?? '',
-        ejercicio: '',
-        setsRepsRec: '',
-        pesoRec: '',
-        setsRepsReal: '',
-        pesoReal: '',
-        comentario: w.trainer_comment ?? '',
-      });
-      continue;
-    }
     for (const ex of exercises) {
-      entrenosSheet.addRow({
+      ejerciciosSheet.addRow({
         fecha: w.date,
-        dia: w.day_label,
-        titulo: w.title,
-        estado: STATUS_LABEL[w.status] ?? w.status,
-        sensacion: w.client_rating ?? '',
+        entreno: w.title,
         ejercicio: ex.name,
         setsRepsRec: ex.sets_reps ?? '',
         pesoRec: ex.recommended_weight_kg ?? '',
         setsRepsReal: ex.actual_sets_reps ?? '',
         pesoReal: ex.actual_weight_kg ?? '',
-        comentario: w.trainer_comment ?? '',
       });
     }
   }
+  ejerciciosSheet.getColumn('pesoRec').numFmt = '0.0';
+  ejerciciosSheet.getColumn('pesoReal').numFmt = '0.0';
+  styleHeaderRow(ejerciciosSheet);
+  borderAllRows(ejerciciosSheet);
 
+  // ===== COMIDAS =====
   const comidasSheet = workbook.addWorksheet('Comidas');
   comidasSheet.columns = [
     { header: 'Fecha', key: 'fecha', width: 12 },
+    { header: 'Día', key: 'dia', width: 12 },
     { header: 'Comida', key: 'comida', width: 12 },
-    { header: 'Título', key: 'titulo', width: 22 },
+    { header: 'Título', key: 'titulo', width: 24 },
     { header: 'Kcal', key: 'kcal', width: 8 },
     { header: 'Proteína (g)', key: 'proteina', width: 12 },
     { header: 'Carbohidratos (g)', key: 'carbos', width: 16 },
     { header: 'Grasa (g)', key: 'grasa', width: 10 },
-    { header: 'Ingredientes', key: 'ingredientes', width: 40 },
+    { header: 'Ingredientes', key: 'ingredientes', width: 45 },
     { header: 'Dónde comprar', key: 'compra', width: 30 },
   ];
   for (const m of typedMeals) {
@@ -145,6 +219,7 @@ export async function GET(_request: Request, { params }: { params: { clientId: s
       .join(', ');
     comidasSheet.addRow({
       fecha: m.date,
+      dia: dayLabelFull(new Date(m.date + 'T00:00:00')),
       comida: MEAL_LABEL[m.meal_type] ?? m.meal_type,
       titulo: m.title,
       kcal: m.kcal,
@@ -155,7 +230,10 @@ export async function GET(_request: Request, { params }: { params: { clientId: s
       compra: m.shopping_tip ?? '',
     });
   }
+  styleHeaderRow(comidasSheet);
+  borderAllRows(comidasSheet);
 
+  // ===== SENSACIÓN SEMANAL =====
   const animoSheet = workbook.addWorksheet('Sensación semanal');
   animoSheet.columns = [
     { header: 'Semana', key: 'semana', width: 14 },
@@ -164,20 +242,21 @@ export async function GET(_request: Request, { params }: { params: { clientId: s
   for (const m of moodLogs ?? []) {
     animoSheet.addRow({ semana: m.week_start, sensacion: m.mood_score });
   }
+  styleHeaderRow(animoSheet);
+  borderAllRows(animoSheet);
 
+  // ===== COMENTARIOS DE DIETA =====
   const dietaSheet = workbook.addWorksheet('Comentarios de dieta');
   dietaSheet.columns = [
     { header: 'Semana', key: 'semana', width: 14 },
-    { header: 'Comentario del cliente', key: 'comentario', width: 40 },
-    { header: 'Respuesta de Jaime', key: 'respuesta', width: 40 },
+    { header: 'Comentario del cliente', key: 'comentario', width: 45 },
+    { header: 'Respuesta de Jaime', key: 'respuesta', width: 45 },
   ];
   for (const c of dietComments ?? []) {
     dietaSheet.addRow({ semana: c.week_start, comentario: c.comment, respuesta: c.trainer_reply ?? '' });
   }
-
-  for (const sheet of workbook.worksheets) {
-    sheet.getRow(1).font = { bold: true };
-  }
+  styleHeaderRow(dietaSheet);
+  borderAllRows(dietaSheet);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const fileName = `${client.full_name.replace(/[^a-z0-9]+/gi, '_')}_train_with_jaime.xlsx`;
