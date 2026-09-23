@@ -19,6 +19,7 @@ export function TrainerAppShell({
           <nav className="flex items-center gap-6 text-sm font-semibold uppercase tracking-wide">
             <NavLink href="/panel">Panel</NavLink>
             <NavLink href="/comunidad">Comunidad</NavLink>
+            <NavLink href="/perfil">Perfil</NavLink>
           </nav>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-navy/60 sm:inline">{fullName}</span>
