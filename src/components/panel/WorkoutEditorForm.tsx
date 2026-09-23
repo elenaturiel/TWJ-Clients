@@ -184,7 +184,7 @@ export function WorkoutEditorForm({
       </div>
 
       <div className="mt-5 flex items-center gap-3">
-        <button onClick={save} disabled={isPending || saved} className="btn-primary">
+        <button onClick={save} disabled={isPending} className="btn-primary">
           {isPending ? 'Guardando...' : 'Guardar cambios'}
         </button>
         {saved && !isPending && <span className="text-sm text-positive">Guardado</span>}

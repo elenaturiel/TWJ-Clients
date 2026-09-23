@@ -73,7 +73,7 @@ function ExerciseRow({ exercise }: { exercise: WorkoutExercise }) {
             }}
           />
         </div>
-        <button onClick={save} disabled={isPending || saved} className="btn-secondary py-1.5 text-xs">
+        <button onClick={save} disabled={isPending} className="btn-secondary py-1.5 text-xs">
           {isPending ? 'Guardando...' : 'Guardar'}
         </button>
         {saved && !isPending && <span className="text-xs text-positive">Guardado</span>}

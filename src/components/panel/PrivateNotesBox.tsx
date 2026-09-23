@@ -30,7 +30,7 @@ export function PrivateNotesBox({ clientId, initialNote }: { clientId: string; i
         placeholder="Ej: le cuesta la sentadilla profunda, vigilar rodilla derecha..."
       />
       <div className="mt-2 flex items-center gap-3">
-        <button onClick={onSave} disabled={isPending || saved} className="btn-secondary">
+        <button onClick={onSave} disabled={isPending} className="btn-secondary">
           {isPending ? 'Guardando...' : 'Guardar nota'}
         </button>
         {saved && <span className="text-xs text-positive">Guardado</span>}
