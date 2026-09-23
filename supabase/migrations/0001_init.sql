@@ -235,7 +235,11 @@ security definer
 set search_path = public
 as $$
 begin
-  if not is_trainer(auth.uid()) then
+  -- auth.uid() es null cuando se ejecuta fuera de una petición autenticada de
+  -- PostgREST (SQL Editor, migraciones, tareas de servidor): ahí confiamos en
+  -- quien tiene acceso directo a la base de datos. La restricción solo se
+  -- aplica cuando hay un usuario cliente autenticado detrás de la petición.
+  if auth.uid() is not null and not is_trainer(auth.uid()) then
     new.role := old.role;
     new.plan := old.plan;
   end if;
@@ -257,7 +261,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if not is_trainer(auth.uid()) then
+  if auth.uid() is not null and not is_trainer(auth.uid()) then
     new.title := old.title;
     new.trainer_comment := old.trainer_comment;
     new.status := old.status;
@@ -283,7 +287,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if not is_trainer(auth.uid()) then
+  if auth.uid() is not null and not is_trainer(auth.uid()) then
     new.completed := old.completed;
     new.completed_at := old.completed_at;
     new.challenge_id := old.challenge_id;
