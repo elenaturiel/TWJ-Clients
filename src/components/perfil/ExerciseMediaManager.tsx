@@ -7,35 +7,60 @@ import { uploadExerciseMedia } from '@/lib/utils/upload-exercise-media';
 import { MUSCLE_GROUP_OPTIONS } from '@/lib/constants/muscle-groups';
 import type { ExerciseMedia, MuscleGroup } from '@/lib/types/database.types';
 
+function titleFromFileName(fileName: string) {
+  return fileName
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+}
+
 export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
   const [items, setItems] = useState(media);
   const [title, setTitle] = useState('');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('otro');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isBatch = files.length > 1;
 
   const upload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !file) {
-      setError('Ponle un título y elige un archivo.');
+    if (files.length === 0) {
+      setError('Elige al menos un archivo.');
+      return;
+    }
+    if (!isBatch && !title.trim()) {
+      setError('Ponle un título.');
       return;
     }
 
     setIsUploading(true);
     setError(null);
-    const result = await uploadExerciseMedia(title.trim(), muscleGroup, file);
-    setIsUploading(false);
-    if (result.error || !result.media) {
-      setError(result.error ?? 'No se ha podido guardar.');
-      return;
+    setProgress({ done: 0, total: files.length });
+
+    const uploaded: ExerciseMedia[] = [];
+    for (const file of files) {
+      const fileTitle = isBatch ? titleFromFileName(file.name) : title.trim();
+      const result = await uploadExerciseMedia(fileTitle, muscleGroup, file);
+      if (result.error || !result.media) {
+        setError(result.error ?? 'No se ha podido guardar ' + file.name + '.');
+        break;
+      }
+      uploaded.push(result.media);
+      setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
     }
 
-    setItems((prev) => [result.media as ExerciseMedia, ...prev]);
-    setTitle('');
-    setMuscleGroup('otro');
-    setFile(null);
-    (e.target as HTMLFormElement).reset();
+    setIsUploading(false);
+    setProgress(null);
+    if (uploaded.length > 0) setItems((prev) => [...uploaded, ...prev]);
+    if (uploaded.length === files.length) {
+      setTitle('');
+      setMuscleGroup('otro');
+      setFiles([]);
+      (e.target as HTMLFormElement).reset();
+    }
   };
 
   const remove = async (id: string) => {
@@ -57,16 +82,36 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
     <div className="space-y-4">
       <form onSubmit={upload} className="card space-y-3 p-4">
         <div>
-          <label className="mb-1 block text-sm font-semibold">Título</label>
+          <label className="mb-1 block text-sm font-semibold">Vídeos o fotos</label>
+          <input
+            type="file"
+            accept="video/*,image/*"
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+            className="text-sm"
+          />
+          {files.length > 0 && (
+            <p className="mt-1 text-xs text-navy/50">
+              {files.length} {files.length === 1 ? 'archivo elegido' : 'archivos elegidos'}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">
+            Título{isBatch && <span className="font-normal text-navy/40"> (se usará el nombre de cada archivo)</span>}
+          </label>
           <input
             className="input"
             placeholder="Ej: Sentadilla — técnica"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={isBatch}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-semibold">Grupo muscular</label>
+          <label className="mb-1 block text-sm font-semibold">
+            Grupo muscular{isBatch && <span className="font-normal text-navy/40"> (para todos los archivos)</span>}
+          </label>
           <select
             className="input"
             value={muscleGroup}
@@ -79,18 +124,13 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-semibold">Vídeo o foto</label>
-          <input
-            type="file"
-            accept="video/*,image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="text-sm"
-          />
-        </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={isUploading} className="btn-primary">
-          {isUploading ? 'Subiendo...' : '+ Subir'}
+          {isUploading
+            ? progress
+              ? `Subiendo ${progress.done + 1}/${progress.total}...`
+              : 'Subiendo...'
+            : `+ Subir${files.length > 1 ? ` (${files.length})` : ''}`}
         </button>
       </form>
 
@@ -109,7 +149,13 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
                 {group.items.map((m) => (
                   <div key={m.id} className="card overflow-hidden p-3">
                     {m.media_type === 'video' ? (
-                      <video src={m.url} controls className="aspect-video w-full rounded-card bg-bg object-cover" />
+                      <video
+                        src={m.url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="aspect-video w-full rounded-card bg-bg object-cover"
+                      />
                     ) : (
                       <div className="relative aspect-video w-full overflow-hidden rounded-card bg-bg">
                         <Image src={m.url} alt={m.title} fill className="object-cover" />

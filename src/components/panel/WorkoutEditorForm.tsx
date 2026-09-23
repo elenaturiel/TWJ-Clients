@@ -51,9 +51,6 @@ export function WorkoutEditorForm({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
   const [exerciseError, setExerciseError] = useState<string | null>(null);
-  const [mediaList, setMediaList] = useState(media);
-
-  const addMedia = (created: ExerciseMedia) => setMediaList((prev) => [created, ...prev]);
 
   const applyTemplate = () => {
     if (!selectedTemplate) return;
@@ -209,8 +206,7 @@ export function WorkoutEditorForm({
               key={ex.id}
               exercise={ex}
               clientId={clientId}
-              media={mediaList}
-              onMediaCreated={addMedia}
+              media={media}
               onUpdated={updateExercise}
               onRemove={() => removeExercise(ex.id)}
             />
@@ -276,14 +272,12 @@ function ExerciseEditRow({
   exercise,
   clientId,
   media,
-  onMediaCreated,
   onUpdated,
   onRemove,
 }: {
   exercise: WorkoutExercise;
   clientId: string;
   media: ExerciseMedia[];
-  onMediaCreated: (media: ExerciseMedia) => void;
   onUpdated: (updated: WorkoutExercise) => void;
   onRemove: () => void;
 }) {
@@ -368,14 +362,7 @@ function ExerciseEditRow({
           {exercise.actual_weight_kg != null ? ` · ${exercise.actual_weight_kg} kg` : ''}
         </p>
       )}
-      <InlineMediaField
-        media={media}
-        value={mediaId}
-        onChange={changeMedia}
-        onMediaCreated={onMediaCreated}
-        exerciseName={exercise.name}
-        disabled={isSavingMedia}
-      />
+      <InlineMediaField media={media} value={mediaId} onChange={changeMedia} disabled={isSavingMedia} />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );

@@ -24,9 +24,6 @@ export function RoutineTemplatesManager({
   const [newTitle, setNewTitle] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [mediaList, setMediaList] = useState(media);
-
-  const addMedia = (created: ExerciseMedia) => setMediaList((prev) => [created, ...prev]);
 
   const createTemplate = () => {
     if (!newTitle.trim()) return;
@@ -85,13 +82,7 @@ export function RoutineTemplatesManager({
       )}
 
       {items.map((template) => (
-        <TemplateCard
-          key={template.id}
-          template={template}
-          media={mediaList}
-          onMediaCreated={addMedia}
-          onDelete={() => deleteTemplate(template.id)}
-        />
+        <TemplateCard key={template.id} template={template} media={media} onDelete={() => deleteTemplate(template.id)} />
       ))}
     </div>
   );
@@ -100,12 +91,10 @@ export function RoutineTemplatesManager({
 function TemplateCard({
   template,
   media,
-  onMediaCreated,
   onDelete,
 }: {
   template: TemplateWithExercises;
   media: ExerciseMedia[];
-  onMediaCreated: (media: ExerciseMedia) => void;
   onDelete: () => void;
 }) {
   const [title, setTitle] = useState(template.title);
@@ -204,8 +193,6 @@ function TemplateCard({
               media={media}
               value={ex.media_id ?? ''}
               onChange={(value) => changeExerciseMedia(ex.id, value)}
-              onMediaCreated={onMediaCreated}
-              exerciseName={ex.name}
             />
           </div>
         ))}

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import { updateExerciseActualAction } from '@/app/semana/actions';
 import type { WorkoutExercise, ExerciseMedia } from '@/lib/types/database.types';
@@ -31,6 +32,7 @@ function ExerciseRow({ exercise, media }: { exercise: WorkoutExercise; media?: E
   );
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
+  const [showMedia, setShowMedia] = useState(false);
 
   const save = () => {
     startTransition(async () => {
@@ -50,14 +52,36 @@ function ExerciseRow({ exercise, media }: { exercise: WorkoutExercise; media?: E
         </span>
       </div>
       {media && (
-        <a
-          href={media.url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-block text-xs font-semibold text-accent"
-        >
-          {media.media_type === 'video' ? 'Ver cómo se hace →' : 'Ver foto explicativa →'}
-        </a>
+        <div className="mt-1">
+          <button
+            type="button"
+            onClick={() => setShowMedia((v) => !v)}
+            className="text-xs font-semibold text-accent"
+          >
+            {showMedia
+              ? 'Ocultar'
+              : media.media_type === 'video'
+                ? 'Ver cómo se hace →'
+                : 'Ver foto explicativa →'}
+          </button>
+          {showMedia && (
+            <div className="mt-2 max-w-xs">
+              {media.media_type === 'video' ? (
+                <video
+                  src={media.url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full rounded-card bg-bg"
+                />
+              ) : (
+                <div className="relative aspect-video w-full overflow-hidden rounded-card bg-bg">
+                  <Image src={media.url} alt={media.title} fill className="object-contain" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
       <div className="mt-2 flex flex-wrap items-end gap-2">
         <div>
