@@ -11,7 +11,9 @@ import type { MealWithIngredients } from '@/app/panel/[clientId]/data';
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
   { value: 'desayuno', label: 'Desayuno' },
+  { value: 'snack1', label: 'Snack 1' },
   { value: 'comida', label: 'Comida' },
+  { value: 'snack2', label: 'Snack 2' },
   { value: 'cena', label: 'Cena' },
 ];
 
@@ -73,7 +75,7 @@ function DayMealsEditor({
   dayMeals: MealWithIngredients[];
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {MEAL_TYPES.map((mt) => (
         <MealEditor
           key={mt.value}

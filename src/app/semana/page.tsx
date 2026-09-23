@@ -14,7 +14,13 @@ import { IconFlame } from '@/components/icons';
 import { sendQnaMessageAction } from './actions';
 import { startOfWeek, weekDates, toISODate, formatWeekRange } from '@/lib/utils/date';
 
-const MEAL_ORDER: Record<string, number> = { desayuno: 0, comida: 1, cena: 2 };
+const MEAL_ORDER: Record<string, number> = {
+  desayuno: 0,
+  snack1: 1,
+  comida: 2,
+  snack2: 3,
+  cena: 4,
+};
 
 export default async function SemanaPage() {
   const profile = await requireProfile('client');
@@ -127,7 +133,7 @@ export default async function SemanaPage() {
                 </div>
                 <MealDayCompletionToggle date={data.todayISO} initialDone={data.todayMealsCompleted} />
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {todayMealsSorted.map((meal) => (
                   <MealCard key={meal.id} meal={meal} />
                 ))}

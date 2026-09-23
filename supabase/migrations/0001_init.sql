@@ -8,7 +8,7 @@ create type user_role as enum ('client', 'trainer');
 create type plan_type as enum ('rookie', 'all_in', 'peak');
 create type workout_status as enum ('pending', 'done', 'today');
 create type sender_role as enum ('client', 'trainer');
-create type meal_type as enum ('desayuno', 'comida', 'cena');
+create type meal_type as enum ('desayuno', 'snack1', 'comida', 'snack2', 'cena');
 create type challenge_status as enum ('active', 'closed');
 create type post_type as enum ('recipe', 'blog', 'achievement');
 

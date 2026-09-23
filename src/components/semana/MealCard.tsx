@@ -3,7 +3,9 @@ import type { MealWithIngredients } from '@/app/semana/data';
 
 const MEAL_LABEL: Record<string, string> = {
   desayuno: 'Desayuno',
+  snack1: 'Snack 1',
   comida: 'Comida',
+  snack2: 'Snack 2',
   cena: 'Cena',
 };
 

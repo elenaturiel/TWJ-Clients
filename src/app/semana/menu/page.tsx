@@ -6,8 +6,20 @@ import { MealDayCompletionToggle } from '@/components/semana/MealDayCompletionTo
 import { startOfWeek, weekDates, toISODate, dayLabel, dayLabelFull } from '@/lib/utils/date';
 import type { Meal } from '@/lib/types/database.types';
 
-const MEAL_ORDER: Record<string, number> = { desayuno: 0, comida: 1, cena: 2 };
-const MEAL_LABEL: Record<string, string> = { desayuno: 'Desayuno', comida: 'Comida', cena: 'Cena' };
+const MEAL_ORDER: Record<string, number> = {
+  desayuno: 0,
+  snack1: 1,
+  comida: 2,
+  snack2: 3,
+  cena: 4,
+};
+const MEAL_LABEL: Record<string, string> = {
+  desayuno: 'Desayuno',
+  snack1: 'Snack 1',
+  comida: 'Comida',
+  snack2: 'Snack 2',
+  cena: 'Cena',
+};
 
 export default async function MenuSemanalPage() {
   const profile = await requireProfile('client');

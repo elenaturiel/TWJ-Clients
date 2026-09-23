@@ -6,7 +6,7 @@ export type UserRole = 'client' | 'trainer';
 export type PlanType = 'rookie' | 'all_in' | 'peak';
 export type WorkoutStatus = 'pending' | 'done' | 'today';
 export type SenderRole = 'client' | 'trainer';
-export type MealType = 'desayuno' | 'comida' | 'cena';
+export type MealType = 'desayuno' | 'snack1' | 'comida' | 'snack2' | 'cena';
 export type ChallengeStatus = 'active' | 'closed';
 export type PostType = 'recipe' | 'blog' | 'achievement';
 
