@@ -2,13 +2,15 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { createExerciseMediaAction, deleteExerciseMediaAction } from '@/app/perfil/ejercicios/actions';
-import type { ExerciseMedia, ExerciseMediaType } from '@/lib/types/database.types';
+import { deleteExerciseMediaAction } from '@/app/perfil/ejercicios/actions';
+import { uploadExerciseMedia } from '@/lib/utils/upload-exercise-media';
+import { MUSCLE_GROUP_OPTIONS } from '@/lib/constants/muscle-groups';
+import type { ExerciseMedia, MuscleGroup } from '@/lib/types/database.types';
 
 export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
   const [items, setItems] = useState(media);
   const [title, setTitle] = useState('');
+  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('otro');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,29 +24,7 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
 
     setIsUploading(true);
     setError(null);
-    const supabase = createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError('Sesión no válida.');
-      setIsUploading(false);
-      return;
-    }
-
-    const mediaType: ExerciseMediaType = file.type.startsWith('video') ? 'video' : 'image';
-    const path = `${user.id}/${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage.from('exercise-media').upload(path, file);
-    if (uploadError) {
-      setError('No se ha podido subir el archivo: ' + uploadError.message);
-      setIsUploading(false);
-      return;
-    }
-
-    const publicUrl = supabase.storage.from('exercise-media').getPublicUrl(path).data.publicUrl;
-    const result = await createExerciseMediaAction(title.trim(), mediaType, publicUrl);
-
+    const result = await uploadExerciseMedia(title.trim(), muscleGroup, file);
     setIsUploading(false);
     if (result.error || !result.media) {
       setError(result.error ?? 'No se ha podido guardar.');
@@ -53,6 +33,7 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
 
     setItems((prev) => [result.media as ExerciseMedia, ...prev]);
     setTitle('');
+    setMuscleGroup('otro');
     setFile(null);
     (e.target as HTMLFormElement).reset();
   };
@@ -67,6 +48,11 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
     setItems((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const groups = MUSCLE_GROUP_OPTIONS.map((g) => ({
+    ...g,
+    items: items.filter((m) => m.muscle_group === g.value),
+  })).filter((g) => g.items.length > 0);
+
   return (
     <div className="space-y-4">
       <form onSubmit={upload} className="card space-y-3 p-4">
@@ -78,6 +64,20 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Grupo muscular</label>
+          <select
+            className="input"
+            value={muscleGroup}
+            onChange={(e) => setMuscleGroup(e.target.value as MuscleGroup)}
+          >
+            {MUSCLE_GROUP_OPTIONS.map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-sm font-semibold">Vídeo o foto</label>
@@ -99,21 +99,30 @@ export function ExerciseMediaManager({ media }: { media: ExerciseMedia[] }) {
           Todavía no has subido ningún vídeo o foto explicativa.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((m) => (
-            <div key={m.id} className="card overflow-hidden p-3">
-              {m.media_type === 'video' ? (
-                <video src={m.url} controls className="aspect-video w-full rounded-card bg-bg object-cover" />
-              ) : (
-                <div className="relative aspect-video w-full overflow-hidden rounded-card bg-bg">
-                  <Image src={m.url} alt={m.title} fill className="object-cover" />
-                </div>
-              )}
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold">{m.title}</p>
-                <button onClick={() => remove(m.id)} className="shrink-0 text-xs text-navy/40 hover:text-red-600">
-                  Borrar
-                </button>
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <div key={group.value}>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-navy/50">
+                {group.label}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.items.map((m) => (
+                  <div key={m.id} className="card overflow-hidden p-3">
+                    {m.media_type === 'video' ? (
+                      <video src={m.url} controls className="aspect-video w-full rounded-card bg-bg object-cover" />
+                    ) : (
+                      <div className="relative aspect-video w-full overflow-hidden rounded-card bg-bg">
+                        <Image src={m.url} alt={m.title} fill className="object-cover" />
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">{m.title}</p>
+                      <button onClick={() => remove(m.id)} className="shrink-0 text-xs text-navy/40 hover:text-red-600">
+                        Borrar
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

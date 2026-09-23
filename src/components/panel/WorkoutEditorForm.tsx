@@ -9,6 +9,7 @@ import {
   removeExerciseAction,
   applyTemplateToWorkoutAction,
 } from '@/app/panel/[clientId]/actions';
+import { InlineMediaField } from './InlineMediaField';
 import type { WorkoutStatus, WorkoutExercise, ExerciseMedia } from '@/lib/types/database.types';
 import type { WorkoutWithExercises, ExerciseSuggestion } from '@/app/panel/[clientId]/data';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
@@ -50,6 +51,9 @@ export function WorkoutEditorForm({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
   const [exerciseError, setExerciseError] = useState<string | null>(null);
+  const [mediaList, setMediaList] = useState(media);
+
+  const addMedia = (created: ExerciseMedia) => setMediaList((prev) => [created, ...prev]);
 
   const applyTemplate = () => {
     if (!selectedTemplate) return;
@@ -205,7 +209,8 @@ export function WorkoutEditorForm({
               key={ex.id}
               exercise={ex}
               clientId={clientId}
-              media={media}
+              media={mediaList}
+              onMediaCreated={addMedia}
               onUpdated={updateExercise}
               onRemove={() => removeExercise(ex.id)}
             />
@@ -271,12 +276,14 @@ function ExerciseEditRow({
   exercise,
   clientId,
   media,
+  onMediaCreated,
   onUpdated,
   onRemove,
 }: {
   exercise: WorkoutExercise;
   clientId: string;
   media: ExerciseMedia[];
+  onMediaCreated: (media: ExerciseMedia) => void;
   onUpdated: (updated: WorkoutExercise) => void;
   onRemove: () => void;
 }) {
@@ -290,8 +297,6 @@ function ExerciseEditRow({
   const [dirty, setDirty] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
-  const selectedMedia = media.find((m) => m.id === (exercise.media_id ?? ''));
 
   const changeMedia = (value: string) => {
     setMediaId(value);
@@ -363,28 +368,14 @@ function ExerciseEditRow({
           {exercise.actual_weight_kg != null ? ` · ${exercise.actual_weight_kg} kg` : ''}
         </p>
       )}
-      {media.length > 0 && (
-        <div className="mt-2 flex items-center gap-2">
-          <select
-            className="input w-auto py-1 text-xs"
-            value={mediaId}
-            onChange={(e) => changeMedia(e.target.value)}
-            disabled={isSavingMedia}
-          >
-            <option value="">Sin vídeo/foto</option>
-            {media.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-          {selectedMedia && (
-            <a href={selectedMedia.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent">
-              Ver →
-            </a>
-          )}
-        </div>
-      )}
+      <InlineMediaField
+        media={media}
+        value={mediaId}
+        onChange={changeMedia}
+        onMediaCreated={onMediaCreated}
+        exerciseName={exercise.name}
+        disabled={isSavingMedia}
+      />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );

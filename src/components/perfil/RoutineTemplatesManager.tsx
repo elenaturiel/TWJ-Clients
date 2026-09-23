@@ -9,6 +9,7 @@ import {
   updateTemplateExerciseMediaAction,
   removeTemplateExerciseAction,
 } from '@/app/perfil/rutinas/actions';
+import { InlineMediaField } from '@/components/panel/InlineMediaField';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
 import type { RoutineTemplateExercise, ExerciseMedia } from '@/lib/types/database.types';
 
@@ -23,6 +24,9 @@ export function RoutineTemplatesManager({
   const [newTitle, setNewTitle] = useState('');
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [mediaList, setMediaList] = useState(media);
+
+  const addMedia = (created: ExerciseMedia) => setMediaList((prev) => [created, ...prev]);
 
   const createTemplate = () => {
     if (!newTitle.trim()) return;
@@ -81,7 +85,13 @@ export function RoutineTemplatesManager({
       )}
 
       {items.map((template) => (
-        <TemplateCard key={template.id} template={template} media={media} onDelete={() => deleteTemplate(template.id)} />
+        <TemplateCard
+          key={template.id}
+          template={template}
+          media={mediaList}
+          onMediaCreated={addMedia}
+          onDelete={() => deleteTemplate(template.id)}
+        />
       ))}
     </div>
   );
@@ -90,10 +100,12 @@ export function RoutineTemplatesManager({
 function TemplateCard({
   template,
   media,
+  onMediaCreated,
   onDelete,
 }: {
   template: TemplateWithExercises;
   media: ExerciseMedia[];
+  onMediaCreated: (media: ExerciseMedia) => void;
   onDelete: () => void;
 }) {
   const [title, setTitle] = useState(template.title);
@@ -174,46 +186,29 @@ function TemplateCard({
       </div>
 
       <div className="mt-3 space-y-1.5">
-        {exercises.map((ex) => {
-          const selectedMedia = media.find((m) => m.id === ex.media_id);
-          return (
-            <div key={ex.id} className="rounded-card bg-bg px-3 py-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>
-                  {ex.name}
-                  {ex.sets_reps && <span className="text-navy/50"> · {ex.sets_reps}</span>}
-                  {ex.recommended_weight_kg != null && (
-                    <span className="text-navy/50"> · {ex.recommended_weight_kg} kg</span>
-                  )}
-                </span>
-                <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
-                  ✕
-                </button>
-              </div>
-              {media.length > 0 && (
-                <div className="mt-1 flex items-center gap-2">
-                  <select
-                    className="input w-auto py-1 text-xs"
-                    value={ex.media_id ?? ''}
-                    onChange={(e) => changeExerciseMedia(ex.id, e.target.value)}
-                  >
-                    <option value="">Sin vídeo/foto</option>
-                    {media.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.title}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedMedia && (
-                    <a href={selectedMedia.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent">
-                      Ver →
-                    </a>
-                  )}
-                </div>
-              )}
+        {exercises.map((ex) => (
+          <div key={ex.id} className="rounded-card bg-bg px-3 py-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span>
+                {ex.name}
+                {ex.sets_reps && <span className="text-navy/50"> · {ex.sets_reps}</span>}
+                {ex.recommended_weight_kg != null && (
+                  <span className="text-navy/50"> · {ex.recommended_weight_kg} kg</span>
+                )}
+              </span>
+              <button onClick={() => removeExercise(ex.id)} className="text-navy/40 hover:text-red-600">
+                ✕
+              </button>
             </div>
-          );
-        })}
+            <InlineMediaField
+              media={media}
+              value={ex.media_id ?? ''}
+              onChange={(value) => changeExerciseMedia(ex.id, value)}
+              onMediaCreated={onMediaCreated}
+              exerciseName={ex.name}
+            />
+          </div>
+        ))}
         {exercises.length === 0 && <p className="text-sm text-navy/40">Sin ejercicios todavía.</p>}
       </div>
 

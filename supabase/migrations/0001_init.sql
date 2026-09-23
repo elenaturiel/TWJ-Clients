@@ -12,6 +12,9 @@ create type meal_type as enum ('desayuno', 'snack1', 'comida', 'snack2', 'cena')
 create type challenge_status as enum ('active', 'closed');
 create type post_type as enum ('recipe', 'blog', 'achievement');
 create type exercise_media_type as enum ('video', 'image');
+create type muscle_group as enum (
+  'pecho', 'espalda', 'piernas', 'hombros', 'brazos', 'core', 'gluteos', 'cardio', 'movilidad', 'otro'
+);
 
 -- =========================================================================
 -- TABLAS
@@ -50,6 +53,7 @@ create table exercise_media (
   trainer_id uuid references profiles(id) on delete cascade,
   title text not null,
   media_type exercise_media_type not null,
+  muscle_group muscle_group not null default 'otro',
   url text not null,
   created_at timestamptz default now()
 );

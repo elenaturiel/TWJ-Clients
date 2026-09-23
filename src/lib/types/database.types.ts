@@ -10,6 +10,17 @@ export type MealType = 'desayuno' | 'snack1' | 'comida' | 'snack2' | 'cena';
 export type ChallengeStatus = 'active' | 'closed';
 export type PostType = 'recipe' | 'blog' | 'achievement';
 export type ExerciseMediaType = 'video' | 'image';
+export type MuscleGroup =
+  | 'pecho'
+  | 'espalda'
+  | 'piernas'
+  | 'hombros'
+  | 'brazos'
+  | 'core'
+  | 'gluteos'
+  | 'cardio'
+  | 'movilidad'
+  | 'otro';
 
 export type Profile = {
   id: string;
@@ -69,6 +80,7 @@ export type ExerciseMedia = {
   trainer_id: string;
   title: string;
   media_type: ExerciseMediaType;
+  muscle_group: MuscleGroup;
   url: string;
   created_at: string;
 };
@@ -232,6 +244,7 @@ export type Database = {
       meal_type: MealType;
       challenge_status: ChallengeStatus;
       post_type: PostType;
+      muscle_group: MuscleGroup;
     };
   };
 };
