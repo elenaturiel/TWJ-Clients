@@ -45,6 +45,22 @@ export type WorkoutExercise = {
   sort_order: number;
 };
 
+export type RoutineTemplate = {
+  id: string;
+  trainer_id: string;
+  title: string;
+  created_at: string;
+};
+
+export type RoutineTemplateExercise = {
+  id: string;
+  template_id: string;
+  name: string;
+  sets_reps: string | null;
+  recommended_weight_kg: number | null;
+  sort_order: number;
+};
+
 export type WeightLog = {
   id: string;
   client_id: string;
@@ -176,6 +192,8 @@ export type Database = {
       profiles: Table<Profile, Partial<Profile> & { id: string; full_name: string }>;
       workouts: Table<Workout, Partial<Workout>>;
       workout_exercises: Table<WorkoutExercise, Partial<WorkoutExercise>>;
+      routine_templates: Table<RoutineTemplate, Partial<RoutineTemplate> & { trainer_id: string; title: string }>;
+      routine_template_exercises: Table<RoutineTemplateExercise, Partial<RoutineTemplateExercise> & { template_id: string; name: string }>;
       weight_logs: Table<WeightLog, Partial<WeightLog>>;
       mood_logs: Table<MoodLog, Partial<MoodLog>>;
       trainer_private_notes: Table<TrainerPrivateNote, Partial<TrainerPrivateNote>>;

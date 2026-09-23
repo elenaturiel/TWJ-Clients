@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { createClient } from '@/lib/supabase/server';
 import { ClientAppShell } from '@/components/layout/ClientAppShell';
@@ -31,6 +32,20 @@ export default async function PerfilPage() {
           </p>
         </div>
       </div>
+
+      {profile.role === 'trainer' && (
+        <section className="mt-6">
+          <Link href="/perfil/rutinas" className="card flex items-center justify-between p-4 hover:border-accent">
+            <div>
+              <h2 className="text-lg font-display normal-case tracking-normal">Rutinas estándar</h2>
+              <p className="text-sm text-navy/60">
+                Crea rutinas reutilizables y aplícalas a cualquier cliente en un clic.
+              </p>
+            </div>
+            <span className="text-sm font-semibold text-accent">Gestionar →</span>
+          </Link>
+        </section>
+      )}
 
       {profile.role === 'client' && (
         <section className="mt-6">

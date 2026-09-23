@@ -53,6 +53,23 @@ create table workout_exercises (
   sort_order bigint default 0 -- se rellena con Date.now() desde la app
 );
 
+-- RUTINAS ESTÁNDAR (plantillas de Jaime, reutilizables entre clientes)
+create table routine_templates (
+  id uuid primary key default gen_random_uuid(),
+  trainer_id uuid references profiles(id) on delete cascade,
+  title text not null,
+  created_at timestamptz default now()
+);
+
+create table routine_template_exercises (
+  id uuid primary key default gen_random_uuid(),
+  template_id uuid references routine_templates(id) on delete cascade,
+  name text not null,
+  sets_reps text,
+  recommended_weight_kg numeric(6,2),
+  sort_order bigint default 0
+);
+
 -- PROGRESO
 create table weight_logs (
   id uuid primary key default gen_random_uuid(),
@@ -190,6 +207,8 @@ create index mood_logs_client_idx on mood_logs (client_id, week_start desc);
 create index qna_messages_client_idx on qna_messages (client_id, created_at);
 create index diet_comments_client_week_idx on diet_comments (client_id, week_start);
 create index meal_day_completions_client_idx on meal_day_completions (client_id, date desc);
+create index routine_templates_trainer_idx on routine_templates (trainer_id, created_at desc);
+create index routine_template_exercises_template_idx on routine_template_exercises (template_id);
 create index challenge_participants_challenge_idx on challenge_participants (challenge_id);
 create index post_comments_post_idx on post_comments (post_id, created_at);
 create index post_likes_post_idx on post_likes (post_id);
@@ -353,6 +372,8 @@ alter table meals enable row level security;
 alter table meal_ingredients enable row level security;
 alter table diet_comments enable row level security;
 alter table meal_day_completions enable row level security;
+alter table routine_templates enable row level security;
+alter table routine_template_exercises enable row level security;
 alter table challenges enable row level security;
 alter table challenge_participants enable row level security;
 alter table community_posts enable row level security;
@@ -518,6 +539,29 @@ create policy "meal_day_completions_insert_own" on meal_day_completions
 create policy "meal_day_completions_delete_own" on meal_day_completions
   for delete to authenticated
   using (client_id = auth.uid());
+
+-- ---- routine_templates / routine_template_exercises ----
+-- Nunca visibles ni accesibles para clientes: son herramientas internas de
+-- Jaime para no reescribir la misma rutina cliente a cliente.
+create policy "routine_templates_trainer_all" on routine_templates
+  for all to authenticated
+  using (is_trainer(auth.uid()) and trainer_id = auth.uid())
+  with check (is_trainer(auth.uid()) and trainer_id = auth.uid());
+
+create policy "routine_template_exercises_trainer_all" on routine_template_exercises
+  for all to authenticated
+  using (
+    exists (
+      select 1 from routine_templates t
+      where t.id = routine_template_exercises.template_id and t.trainer_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from routine_templates t
+      where t.id = routine_template_exercises.template_id and t.trainer_id = auth.uid()
+    )
+  );
 
 -- ---- challenges ----
 create policy "challenges_select_authenticated" on challenges

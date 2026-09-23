@@ -95,6 +95,39 @@ export async function addExerciseAction(
   return { error: null };
 }
 
+export async function applyTemplateToWorkoutAction(
+  templateId: string,
+  workoutId: string,
+  clientId: string
+) {
+  const supabase = await trainerClient();
+
+  const { data: templateExercises, error: fetchError } = await supabase
+    .from('routine_template_exercises')
+    .select('*')
+    .eq('template_id', templateId)
+    .order('sort_order', { ascending: true });
+
+  if (fetchError) return { error: fetchError.message, exercises: null };
+  if (!templateExercises || templateExercises.length === 0) {
+    return { error: 'Esa rutina no tiene ejercicios todavía.', exercises: null };
+  }
+
+  const rows = templateExercises.map((ex, i) => ({
+    workout_id: workoutId,
+    name: ex.name,
+    sets_reps: ex.sets_reps,
+    recommended_weight_kg: ex.recommended_weight_kg,
+    sort_order: Date.now() + i,
+  }));
+
+  const { data: inserted, error } = await supabase.from('workout_exercises').insert(rows).select();
+  if (error) return { error: error.message, exercises: null };
+
+  revalidatePath(`/panel/${clientId}`);
+  return { error: null, exercises: inserted };
+}
+
 export async function removeExerciseAction(exerciseId: string, clientId: string) {
   const supabase = await trainerClient();
   const { error } = await supabase.from('workout_exercises').delete().eq('id', exerciseId);

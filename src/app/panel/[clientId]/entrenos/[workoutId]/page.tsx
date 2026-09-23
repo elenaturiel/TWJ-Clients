@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { requireProfile } from '@/lib/auth/get-profile';
 import { WorkoutEditorForm } from '@/components/panel/WorkoutEditorForm';
+import { getRoutineTemplates } from '@/app/perfil/rutinas/data';
 import { dayLabelFull } from '@/lib/utils/date';
 import type { WorkoutWithExercises } from '@/app/panel/[clientId]/data';
 
@@ -10,9 +12,10 @@ export default async function WorkoutEditPage({
 }: {
   params: { clientId: string; workoutId: string };
 }) {
+  const trainer = await requireProfile('trainer');
   const supabase = createClient();
 
-  const [{ data: workout }, { data: client }] = await Promise.all([
+  const [{ data: workout }, { data: client }, templates] = await Promise.all([
     supabase
       .from('workouts')
       .select('*, workout_exercises(*)')
@@ -20,6 +23,7 @@ export default async function WorkoutEditPage({
       .eq('client_id', params.clientId)
       .maybeSingle(),
     supabase.from('profiles').select('full_name').eq('id', params.clientId).single(),
+    getRoutineTemplates(trainer.id),
   ]);
 
   if (!workout) notFound();
@@ -40,6 +44,7 @@ export default async function WorkoutEditPage({
           date={typed.date}
           dayLabel={typed.day_label}
           workout={typed}
+          templates={templates}
         />
       </div>
     </div>

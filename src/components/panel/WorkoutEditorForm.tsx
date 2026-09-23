@@ -5,9 +5,11 @@ import {
   upsertWorkoutAction,
   addExerciseAction,
   removeExerciseAction,
+  applyTemplateToWorkoutAction,
 } from '@/app/panel/[clientId]/actions';
-import type { WorkoutStatus } from '@/lib/types/database.types';
+import type { WorkoutStatus, WorkoutExercise } from '@/lib/types/database.types';
 import type { WorkoutWithExercises } from '@/app/panel/[clientId]/data';
+import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
 
 const STATUS_OPTIONS: { value: WorkoutStatus; label: string }[] = [
   { value: 'pending', label: 'Pendiente' },
@@ -20,11 +22,13 @@ export function WorkoutEditorForm({
   date,
   dayLabel,
   workout,
+  templates,
 }: {
   clientId: string;
   date: string;
   dayLabel: string;
   workout: WorkoutWithExercises;
+  templates: TemplateWithExercises[];
 }) {
   const [title, setTitle] = useState(workout.title);
   const [status, setStatus] = useState<WorkoutStatus>(workout.status);
@@ -35,9 +39,25 @@ export function WorkoutEditorForm({
   const [newExercise, setNewExercise] = useState('');
   const [newSetsReps, setNewSetsReps] = useState('');
   const [newWeight, setNewWeight] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [isApplyingTemplate, startApplyTemplate] = useTransition();
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(true);
   const [exerciseError, setExerciseError] = useState<string | null>(null);
+
+  const applyTemplate = () => {
+    if (!selectedTemplate) return;
+    setExerciseError(null);
+    startApplyTemplate(async () => {
+      const result = await applyTemplateToWorkoutAction(selectedTemplate, workout.id, clientId);
+      if (result.error || !result.exercises) {
+        setExerciseError(result.error ?? 'No se ha podido aplicar la rutina.');
+        return;
+      }
+      setExercises((prev) => [...prev, ...(result.exercises as WorkoutExercise[])]);
+      setSelectedTemplate('');
+    });
+  };
 
   const save = () => {
     startTransition(async () => {
@@ -135,9 +155,32 @@ export function WorkoutEditorForm({
       />
 
       <div className="mt-5">
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-navy/50">
-          Ejercicios
-        </h3>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-navy/50">Ejercicios</h3>
+          {templates.length > 0 && (
+            <div className="flex items-center gap-2">
+              <select
+                className="input w-auto py-1 text-xs"
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+              >
+                <option value="">Aplicar rutina estándar...</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={applyTemplate}
+                disabled={!selectedTemplate || isApplyingTemplate}
+                className="btn-secondary py-1 text-xs"
+              >
+                {isApplyingTemplate ? 'Aplicando...' : 'Aplicar'}
+              </button>
+            </div>
+          )}
+        </div>
         <div className="space-y-2">
           {exercises.map((ex) => (
             <div key={ex.id} className="rounded-card bg-bg px-3 py-2 text-sm">
