@@ -7,7 +7,7 @@ import { PrivateNotesBox } from '@/components/panel/PrivateNotesBox';
 import { EntrenosTab } from '@/components/panel/EntrenosTab';
 import { MenuTab } from '@/components/panel/MenuTab';
 import { NotasTab } from '@/components/panel/NotasTab';
-import { startOfWeek, weekDates, toISODate, dayLabel } from '@/lib/utils/date';
+import { startOfWeek, weekDates, toISODate, dayLabel, addDays, formatWeekRange } from '@/lib/utils/date';
 
 const PLAN_LABEL: Record<string, string> = { rookie: 'Rookie', all_in: 'All In', peak: 'Peak' };
 const TABS = [
@@ -21,13 +21,16 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: { clientId: string };
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; week?: string };
 }) {
   const detail = await getClientDetail(params.clientId);
   if (!detail) notFound();
 
-  const weekData = await getClientWeekData(params.clientId);
-  const days = weekDates(startOfWeek()).map((d) => ({ iso: toISODate(d), label: dayLabel(d) }));
+  const weekOffset = Number.isFinite(Number(searchParams.week)) ? Math.trunc(Number(searchParams.week)) : 0;
+
+  const weekData = await getClientWeekData(params.clientId, weekOffset);
+  const weekStart = startOfWeek(addDays(new Date(), weekOffset * 7));
+  const days = weekDates(weekStart).map((d) => ({ iso: toISODate(d), label: dayLabel(d) }));
   const workoutsByDate = new Map(weekData.workouts.map((w) => [w.date, w]));
 
   const tab = TABS.some((t) => t.key === searchParams.tab) ? searchParams.tab! : 'entrenos';
@@ -79,7 +82,7 @@ export default async function ClientDetailPage({
         {TABS.map((t) => (
           <Link
             key={t.key}
-            href={`/panel/${params.clientId}?tab=${t.key}`}
+            href={`/panel/${params.clientId}?tab=${t.key}&week=${weekOffset}`}
             className={`border-b-2 px-3 py-2 text-sm font-semibold ${
               tab === t.key ? 'border-navy text-navy' : 'border-transparent text-navy/50'
             }`}
@@ -89,6 +92,31 @@ export default async function ClientDetailPage({
         ))}
       </div>
 
+      {(tab === 'entrenos' || tab === 'menu') && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <Link
+            href={`/panel/${params.clientId}?tab=${tab}&week=${weekOffset - 1}`}
+            className="btn-secondary py-1 text-xs"
+          >
+            ← Semana anterior
+          </Link>
+          <div className="flex items-center gap-2 text-sm font-semibold text-navy/70">
+            {formatWeekRange(weekStart)}
+            {weekOffset !== 0 && (
+              <Link href={`/panel/${params.clientId}?tab=${tab}&week=0`} className="text-xs font-semibold text-accent">
+                Ir a esta semana
+              </Link>
+            )}
+          </div>
+          <Link
+            href={`/panel/${params.clientId}?tab=${tab}&week=${weekOffset + 1}`}
+            className="btn-secondary py-1 text-xs"
+          >
+            Semana siguiente →
+          </Link>
+        </div>
+      )}
+
       {tab === 'entrenos' && (
         <EntrenosTab
           clientId={params.clientId}
@@ -96,7 +124,9 @@ export default async function ClientDetailPage({
         />
       )}
 
-      {tab === 'menu' && <MenuTab clientId={params.clientId} days={days} meals={weekData.meals} />}
+      {tab === 'menu' && (
+        <MenuTab key={weekOffset} clientId={params.clientId} days={days} meals={weekData.meals} />
+      )}
 
       {tab === 'notas' && (
         <NotasTab

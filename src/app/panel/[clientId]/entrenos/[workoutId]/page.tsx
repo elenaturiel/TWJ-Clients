@@ -6,7 +6,7 @@ import { WorkoutEditorForm } from '@/components/panel/WorkoutEditorForm';
 import { getRoutineTemplates } from '@/app/perfil/rutinas/data';
 import { getExerciseMedia } from '@/app/perfil/ejercicios/data';
 import { getClientExerciseSuggestions } from '@/app/panel/[clientId]/data';
-import { dayLabelFull } from '@/lib/utils/date';
+import { dayLabelFull, weekOffsetFromToday } from '@/lib/utils/date';
 import type { WorkoutWithExercises } from '@/app/panel/[clientId]/data';
 
 export default async function WorkoutEditPage({
@@ -34,13 +34,19 @@ export default async function WorkoutEditPage({
 
   const typed = workout as WorkoutWithExercises;
   const date = new Date(typed.date + 'T00:00:00');
+  const weekOffset = weekOffsetFromToday(typed.date);
 
   return (
     <div>
-      <Link href={`/panel/${params.clientId}?tab=entrenos`} className="text-sm font-semibold text-accent">
+      <Link
+        href={`/panel/${params.clientId}?tab=entrenos&week=${weekOffset}`}
+        className="text-sm font-semibold text-accent"
+      >
         ← Volver a los entrenos de {client?.full_name ?? 'este cliente'}
       </Link>
-      <h1 className="mb-4 mt-2 text-2xl">{dayLabelFull(date)}</h1>
+      <h1 className="mb-4 mt-2 text-2xl">
+        {dayLabelFull(date)}, {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+      </h1>
 
       <div className="max-w-2xl">
         <WorkoutEditorForm

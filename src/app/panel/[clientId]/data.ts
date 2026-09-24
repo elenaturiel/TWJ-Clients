@@ -21,9 +21,9 @@ export interface ClientWeekData {
   qnaMessages: QnaMessage[];
 }
 
-export async function getClientWeekData(clientId: string): Promise<ClientWeekData> {
+export async function getClientWeekData(clientId: string, weekOffset = 0): Promise<ClientWeekData> {
   const supabase = createClient();
-  const { weekStartISO, weekEndISO } = currentWeekBounds();
+  const { weekStartISO, weekEndISO } = currentWeekBounds(weekOffset);
 
   const [{ data: workouts }, { data: meals }, { data: dietComments }, { data: qnaMessages }] =
     await Promise.all([

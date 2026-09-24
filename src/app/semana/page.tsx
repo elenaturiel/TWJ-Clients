@@ -109,9 +109,14 @@ export default async function SemanaPage() {
         <section>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-xl">Tu menú de hoy</h2>
-            <Link href="/semana/menu" className="text-sm font-semibold text-accent">
-              Ver semana completa →
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/semana/menu" className="text-sm font-semibold text-accent">
+                Ver semana completa →
+              </Link>
+              <Link href="/semana/menu?week=1" className="text-sm font-semibold text-accent">
+                Semana que viene →
+              </Link>
+            </div>
           </div>
 
           {todayMealsSorted.length === 0 ? (

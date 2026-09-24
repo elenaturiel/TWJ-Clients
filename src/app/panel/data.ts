@@ -89,8 +89,8 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
   };
 }
 
-export function currentWeekBounds() {
-  const weekStart = startOfWeek();
+export function currentWeekBounds(weekOffset = 0) {
+  const weekStart = addDays(startOfWeek(), weekOffset * 7);
   const weekEnd = addDays(weekStart, 6);
   return { weekStart, weekEnd, weekStartISO: toISODate(weekStart), weekEndISO: toISODate(weekEnd) };
 }

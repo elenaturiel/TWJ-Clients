@@ -3,7 +3,7 @@ import { requireProfile } from '@/lib/auth/get-profile';
 import { createClient } from '@/lib/supabase/server';
 import { ClientAppShell } from '@/components/layout/ClientAppShell';
 import { MealDayCompletionToggle } from '@/components/semana/MealDayCompletionToggle';
-import { startOfWeek, weekDates, toISODate, dayLabel, dayLabelFull } from '@/lib/utils/date';
+import { startOfWeek, weekDates, toISODate, dayLabel, dayLabelFull, addDays, formatWeekRange } from '@/lib/utils/date';
 import type { Meal } from '@/lib/types/database.types';
 
 const MEAL_ORDER: Record<string, number> = {
@@ -21,11 +21,18 @@ const MEAL_LABEL: Record<string, string> = {
   cena: 'Cena',
 };
 
-export default async function MenuSemanalPage() {
+export default async function MenuSemanalPage({
+  searchParams,
+}: {
+  searchParams: { week?: string };
+}) {
   const profile = await requireProfile('client');
   const supabase = createClient();
 
-  const weekStart = startOfWeek();
+  // El cliente solo puede adelantar como mucho una semana.
+  const weekOffset = searchParams.week === '1' ? 1 : 0;
+
+  const weekStart = startOfWeek(addDays(new Date(), weekOffset * 7));
   const days = weekDates(weekStart);
   const weekStartISO = toISODate(weekStart);
   const weekEndISO = toISODate(days[6]);
@@ -61,9 +68,22 @@ export default async function MenuSemanalPage() {
         <Link href="/semana" className="text-sm font-semibold text-accent">
           ← Volver a tu semana
         </Link>
-        <h1 className="mt-2 text-3xl">Menú completo de la semana</h1>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-3xl">
+            {weekOffset === 0 ? 'Menú completo de la semana' : 'Menú de la semana que viene'}
+          </h1>
+          {weekOffset === 0 ? (
+            <Link href="/semana/menu?week=1" className="text-sm font-semibold text-accent">
+              Semana que viene →
+            </Link>
+          ) : (
+            <Link href="/semana/menu" className="text-sm font-semibold text-accent">
+              ← Esta semana
+            </Link>
+          )}
+        </div>
         <p className="mt-1 text-sm text-navy/60">
-          Échale un ojo antes de ir a comprar. Nada de sorpresas de última hora.
+          {formatWeekRange(weekStart)} · Échale un ojo antes de ir a comprar. Nada de sorpresas de última hora.
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">

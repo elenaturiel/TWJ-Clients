@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MealEditorForm } from '@/components/panel/MealEditorForm';
 import type { MealWithIngredients } from '@/app/panel/[clientId]/data';
+import { weekOffsetFromToday } from '@/lib/utils/date';
 
 const MEAL_LABEL: Record<string, string> = {
   desayuno: 'Desayuno',
@@ -33,10 +34,14 @@ export default async function MealEditPage({
 
   const typed = meal as MealWithIngredients;
   const date = new Date(typed.date + 'T00:00:00');
+  const weekOffset = weekOffsetFromToday(typed.date);
 
   return (
     <div>
-      <Link href={`/panel/${params.clientId}?tab=menu`} className="text-sm font-semibold text-accent">
+      <Link
+        href={`/panel/${params.clientId}?tab=menu&week=${weekOffset}`}
+        className="text-sm font-semibold text-accent"
+      >
         ← Volver al menú de {client?.full_name ?? 'este cliente'}
       </Link>
       <h1 className="mb-4 mt-2 text-2xl">

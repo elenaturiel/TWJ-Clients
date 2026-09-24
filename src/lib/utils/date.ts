@@ -61,6 +61,13 @@ export function isSameDay(a: Date, b: Date): boolean {
   return toISODate(a) === toISODate(b);
 }
 
+/** Nº de semanas (con signo) entre la semana de `dateISO` y la semana actual. */
+export function weekOffsetFromToday(dateISO: string): number {
+  const target = startOfWeek(new Date(dateISO + 'T00:00:00')).getTime();
+  const current = startOfWeek().getTime();
+  return Math.round((target - current) / (7 * 86400000));
+}
+
 export function formatWeekRange(weekStart: Date): string {
   const weekEnd = addDays(weekStart, 6);
   const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
