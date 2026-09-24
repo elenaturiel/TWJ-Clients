@@ -42,7 +42,8 @@ export async function addTemplateExerciseAction(
   templateId: string,
   name: string,
   setsReps: string,
-  recommendedWeightKg: number | null
+  recommendedWeightKg: number | null,
+  mediaId: string | null = null
 ) {
   const { supabase } = await trainerClient();
   const { data, error } = await supabase
@@ -52,6 +53,7 @@ export async function addTemplateExerciseAction(
       name,
       sets_reps: setsReps || null,
       recommended_weight_kg: recommendedWeightKg,
+      media_id: mediaId,
       sort_order: Date.now(),
     })
     .select()

@@ -10,6 +10,7 @@ import {
   applyTemplateToWorkoutAction,
 } from '@/app/panel/[clientId]/actions';
 import { InlineMediaField } from './InlineMediaField';
+import { LibraryExercisePicker } from './LibraryExercisePicker';
 import type { WorkoutStatus, WorkoutExercise, ExerciseMedia } from '@/lib/types/database.types';
 import type { WorkoutWithExercises, ExerciseSuggestion } from '@/app/panel/[clientId]/data';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
@@ -44,6 +45,7 @@ export function WorkoutEditorForm({
     [...workout.workout_exercises].sort((a, b) => a.sort_order - b.sort_order)
   );
   const [newExercise, setNewExercise] = useState('');
+  const [newExerciseMediaId, setNewExerciseMediaId] = useState('');
   const [newSetsReps, setNewSetsReps] = useState('');
   const [newWeight, setNewWeight] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -87,6 +89,12 @@ export function WorkoutEditorForm({
     if (!newWeight && suggestion.weightKg != null) setNewWeight(String(suggestion.weightKg));
   };
 
+  const pickFromLibrary = (item: ExerciseMedia) => {
+    setNewExercise(item.title);
+    setNewExerciseMediaId(item.id);
+    applySuggestionToNewExercise(item.title);
+  };
+
   const addExercise = () => {
     if (!newExercise.trim()) return;
     const weight = newWeight ? Number(newWeight) : null;
@@ -97,27 +105,16 @@ export function WorkoutEditorForm({
         clientId,
         newExercise.trim(),
         newSetsReps.trim(),
-        weight
+        weight,
+        newExerciseMediaId || null
       );
-      if (result.error) {
-        setExerciseError(result.error);
+      if (result.error || !result.exercise) {
+        setExerciseError(result.error ?? 'No se ha podido añadir el ejercicio.');
         return;
       }
-      setExercises((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          workout_id: workout.id,
-          name: newExercise.trim(),
-          sets_reps: newSetsReps.trim() || null,
-          recommended_weight_kg: weight,
-          actual_sets_reps: null,
-          actual_weight_kg: null,
-          media_id: null,
-          sort_order: Date.now(),
-        },
-      ]);
+      setExercises((prev) => [...prev, result.exercise as WorkoutExercise]);
       setNewExercise('');
+      setNewExerciseMediaId('');
       setNewSetsReps('');
       setNewWeight('');
     });
@@ -215,12 +212,20 @@ export function WorkoutEditorForm({
             <p className="text-sm text-navy/40">Todavía no hay ejercicios.</p>
           )}
         </div>
+        {media.length > 0 && (
+          <div className="mt-2">
+            <LibraryExercisePicker media={media} onPick={pickFromLibrary} />
+          </div>
+        )}
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             className="input"
             placeholder="Nombre del ejercicio"
             value={newExercise}
-            onChange={(e) => setNewExercise(e.target.value)}
+            onChange={(e) => {
+              setNewExercise(e.target.value);
+              setNewExerciseMediaId('');
+            }}
             onBlur={(e) => applySuggestionToNewExercise(e.target.value)}
           />
           <input

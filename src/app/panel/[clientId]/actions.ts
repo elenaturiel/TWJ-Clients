@@ -81,19 +81,25 @@ export async function addExerciseAction(
   clientId: string,
   name: string,
   setsReps: string,
-  recommendedWeightKg: number | null
+  recommendedWeightKg: number | null,
+  mediaId: string | null = null
 ) {
   const supabase = await trainerClient();
-  const { error } = await supabase.from('workout_exercises').insert({
-    workout_id: workoutId,
-    name,
-    sets_reps: setsReps || null,
-    recommended_weight_kg: recommendedWeightKg,
-    sort_order: Date.now(),
-  });
-  if (error) return { error: error.message };
+  const { data, error } = await supabase
+    .from('workout_exercises')
+    .insert({
+      workout_id: workoutId,
+      name,
+      sets_reps: setsReps || null,
+      recommended_weight_kg: recommendedWeightKg,
+      media_id: mediaId,
+      sort_order: Date.now(),
+    })
+    .select()
+    .single();
+  if (error) return { error: error.message, exercise: null };
   revalidatePath(`/panel/${clientId}`);
-  return { error: null };
+  return { error: null, exercise: data };
 }
 
 export async function applyTemplateToWorkoutAction(

@@ -10,6 +10,7 @@ import {
   removeTemplateExerciseAction,
 } from '@/app/perfil/rutinas/actions';
 import { InlineMediaField } from '@/components/panel/InlineMediaField';
+import { LibraryExercisePicker } from '@/components/panel/LibraryExercisePicker';
 import type { TemplateWithExercises } from '@/app/perfil/rutinas/data';
 import type { RoutineTemplateExercise, ExerciseMedia } from '@/lib/types/database.types';
 
@@ -102,6 +103,7 @@ function TemplateCard({
     [...template.routine_template_exercises].sort((a, b) => a.sort_order - b.sort_order)
   );
   const [newExercise, setNewExercise] = useState('');
+  const [newExerciseMediaId, setNewExerciseMediaId] = useState('');
   const [newSetsReps, setNewSetsReps] = useState('');
   const [newWeight, setNewWeight] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -114,6 +116,11 @@ function TemplateCard({
     });
   };
 
+  const pickFromLibrary = (item: ExerciseMedia) => {
+    setNewExercise(item.title);
+    setNewExerciseMediaId(item.id);
+  };
+
   const addExercise = () => {
     if (!newExercise.trim()) return;
     const weight = newWeight ? Number(newWeight) : null;
@@ -123,7 +130,8 @@ function TemplateCard({
         template.id,
         newExercise.trim(),
         newSetsReps.trim(),
-        weight
+        weight,
+        newExerciseMediaId || null
       );
       if (result.error || !result.exercise) {
         setError(result.error ?? 'No se ha podido añadir el ejercicio.');
@@ -131,6 +139,7 @@ function TemplateCard({
       }
       setExercises((prev) => [...prev, result.exercise as RoutineTemplateExercise]);
       setNewExercise('');
+      setNewExerciseMediaId('');
       setNewSetsReps('');
       setNewWeight('');
     });
@@ -199,12 +208,20 @@ function TemplateCard({
         {exercises.length === 0 && <p className="text-sm text-navy/40">Sin ejercicios todavía.</p>}
       </div>
 
+      {media.length > 0 && (
+        <div className="mt-2">
+          <LibraryExercisePicker media={media} onPick={pickFromLibrary} />
+        </div>
+      )}
       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
         <input
           className="input"
           placeholder="Nombre del ejercicio"
           value={newExercise}
-          onChange={(e) => setNewExercise(e.target.value)}
+          onChange={(e) => {
+            setNewExercise(e.target.value);
+            setNewExerciseMediaId('');
+          }}
         />
         <input
           className="input sm:w-28"
