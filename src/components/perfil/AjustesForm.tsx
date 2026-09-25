@@ -255,12 +255,13 @@ function ToggleSwitch({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+      className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${
         checked ? 'bg-accent' : 'bg-navy/20'
       } ${disabled ? 'opacity-50' : ''}`}
     >
       <span
-        className={`absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+        aria-hidden="true"
+        className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${
           checked ? 'translate-x-5' : 'translate-x-0'
         }`}
       />
