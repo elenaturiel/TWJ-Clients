@@ -4,7 +4,16 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireProfile } from '@/lib/auth/get-profile';
 import { getClientExerciseSuggestions } from './data';
+import { notifyUser } from '@/lib/notifications/notify';
 import type { WorkoutStatus, MealType } from '@/lib/types/database.types';
+
+const MEAL_LABEL: Record<MealType, string> = {
+  desayuno: 'Desayuno',
+  snack1: 'Snack 1',
+  comida: 'Comida',
+  snack2: 'Snack 2',
+  cena: 'Cena',
+};
 
 async function trainerClient() {
   await requireProfile('trainer');
@@ -73,6 +82,16 @@ export async function upsertWorkoutAction(input: {
 
   if (error) return { error: error.message, workoutId: null };
   revalidatePath(`/panel/${input.clientId}`);
+
+  if (!existing) {
+    await notifyUser(supabase, {
+      userId: input.clientId,
+      title: 'Nuevo entreno asignado',
+      body: `Jaime te ha asignado un entreno para el ${input.dayLabel}: ${input.title}.`,
+      path: `/semana/entreno/${workout.id}`,
+    });
+  }
+
   return { error: null, workoutId: workout.id as string };
 }
 
@@ -228,6 +247,16 @@ export async function upsertMealAction(input: {
 
   if (error) return { error: error.message, mealId: null };
   revalidatePath(`/panel/${input.clientId}`);
+
+  if (!existing) {
+    await notifyUser(supabase, {
+      userId: input.clientId,
+      title: 'Nuevo menú asignado',
+      body: `Jaime te ha subido ${MEAL_LABEL[input.mealType]}: ${input.title}.`,
+      path: '/semana/menu',
+    });
+  }
+
   return { error: null, mealId: meal.id as string };
 }
 
@@ -268,6 +297,14 @@ export async function replyDietCommentAction(dietCommentId: string, clientId: st
     .eq('id', dietCommentId);
   if (error) return { error: error.message };
   revalidatePath(`/panel/${clientId}`);
+
+  await notifyUser(supabase, {
+    userId: clientId,
+    title: 'Jaime te ha respondido',
+    body: reply,
+    path: '/semana',
+  });
+
   return { error: null };
 }
 
@@ -278,5 +315,13 @@ export async function sendTrainerQnaMessageAction(clientId: string, message: str
     .insert({ client_id: clientId, sender: 'trainer', message });
   if (error) return { error: error.message };
   revalidatePath(`/panel/${clientId}`);
+
+  await notifyUser(supabase, {
+    userId: clientId,
+    title: 'Nuevo mensaje de Jaime',
+    body: message,
+    path: '/semana',
+  });
+
   return { error: null };
 }

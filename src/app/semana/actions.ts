@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { toISODate } from '@/lib/utils/date';
+import { notifyUser, getTrainerId } from '@/lib/notifications/notify';
 
 export async function toggleWorkoutCompletionAction(
   workoutId: string,
@@ -141,6 +142,18 @@ export async function submitDietCommentAction(weekStart: string, comment: string
 
   if (error) return { error: error.message };
   revalidatePath('/semana');
+
+  const trainerId = await getTrainerId(supabase);
+  if (trainerId) {
+    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+    await notifyUser(supabase, {
+      userId: trainerId,
+      title: 'Nuevo comentario de dieta',
+      body: `${profile?.full_name ?? 'Un cliente'}: ${comment}`,
+      path: `/panel/${user.id}?tab=notas`,
+    });
+  }
+
   return { error: null };
 }
 
@@ -157,5 +170,17 @@ export async function sendQnaMessageAction(message: string) {
 
   if (error) return { error: error.message };
   revalidatePath('/semana');
+
+  const trainerId = await getTrainerId(supabase);
+  if (trainerId) {
+    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+    await notifyUser(supabase, {
+      userId: trainerId,
+      title: 'Nuevo mensaje',
+      body: `${profile?.full_name ?? 'Un cliente'}: ${message}`,
+      path: `/panel/${user.id}?tab=notas`,
+    });
+  }
+
   return { error: null };
 }

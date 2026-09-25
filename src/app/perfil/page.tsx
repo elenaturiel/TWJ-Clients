@@ -56,6 +56,16 @@ export default async function PerfilPage() {
         </section>
       )}
 
+      <section className="mt-6">
+        <Link href="/perfil/ajustes" className="card flex items-center justify-between p-4 hover:border-accent">
+          <div>
+            <h2 className="text-lg font-display normal-case tracking-normal">Ajustes</h2>
+            <p className="text-sm text-navy/60">Notificaciones por email y avisos push en el móvil.</p>
+          </div>
+          <span className="text-sm font-semibold text-accent">Gestionar →</span>
+        </Link>
+      </section>
+
       {profile.role === 'client' && (
         <section className="mt-6">
           <h2 className="mb-3 text-xl">Medallas</h2>

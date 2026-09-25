@@ -30,6 +30,18 @@ export type Profile = {
   plan: PlanType | null;
   phone: string | null;
   client_since: string | null;
+  email: string | null;
+  email_notifications_enabled: boolean;
+  push_notifications_enabled: boolean;
+  created_at: string;
+};
+
+export type PushSubscriptionRow = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth_key: string;
   created_at: string;
 };
 
@@ -233,6 +245,10 @@ export type Database = {
       post_comments: Table<PostComment, Partial<PostComment>>;
       post_likes: Table<PostLike, Partial<PostLike>>;
       cheers: Table<Cheer, Partial<Cheer>>;
+      push_subscriptions: Table<
+        PushSubscriptionRow,
+        Partial<PushSubscriptionRow> & { user_id: string; endpoint: string; p256dh: string; auth_key: string }
+      >;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -29,6 +29,19 @@ create table profiles (
   plan plan_type,
   phone text,
   client_since date default now(),
+  email text, -- copiado de auth.users al registrarse; se usa para notificaciones
+  email_notifications_enabled boolean not null default true,
+  push_notifications_enabled boolean not null default true,
+  created_at timestamptz default now()
+);
+
+-- SUBSCRIPCIONES A NOTIFICACIONES PUSH (una fila por dispositivo/navegador)
+create table push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth_key text not null,
   created_at timestamptz default now()
 );
 
@@ -261,13 +274,14 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, role, full_name, plan, phone)
+  insert into public.profiles (id, role, full_name, plan, phone, email)
   values (
     new.id,
     coalesce((new.raw_user_meta_data->>'role')::user_role, 'client'),
     coalesce(new.raw_user_meta_data->>'full_name', 'Nuevo usuario'),
     nullif(new.raw_user_meta_data->>'plan', '')::plan_type,
-    new.raw_user_meta_data->>'phone'
+    new.raw_user_meta_data->>'phone',
+    new.email
   );
   return new;
 end;
@@ -400,6 +414,7 @@ alter table challenge_participants enable row level security;
 alter table community_posts enable row level security;
 alter table post_comments enable row level security;
 alter table post_likes enable row level security;
+alter table push_subscriptions enable row level security;
 
 -- ---- profiles ----
 -- Cualquier usuario autenticado puede leer perfiles (nombre/avatar se
@@ -659,6 +674,30 @@ create policy "post_likes_insert" on post_likes
   with check (user_id = auth.uid());
 
 create policy "post_likes_delete_own" on post_likes
+  for delete to authenticated
+  using (user_id = auth.uid());
+
+-- ---- push_subscriptions ----
+-- Cada cliente/entrenador lee y gestiona sus propias subscripciones; además,
+-- como solo hay un entrenador, cliente y entrenador pueden leer la
+-- subscripción del otro para poder enviarle un push cuando ocurre un evento
+-- (nuevo entreno/menú/comentario) sin necesitar la service role key.
+create policy "push_subscriptions_select" on push_subscriptions
+  for select to authenticated
+  using (user_id = auth.uid() or is_trainer(auth.uid()) or is_trainer(user_id));
+
+create policy "push_subscriptions_insert_own" on push_subscriptions
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+-- Necesaria para el upsert por `endpoint` (re-subscribirse actualiza la fila
+-- existente en vez de duplicarla).
+create policy "push_subscriptions_update_own" on push_subscriptions
+  for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "push_subscriptions_delete_own" on push_subscriptions
   for delete to authenticated
   using (user_id = auth.uid());
 

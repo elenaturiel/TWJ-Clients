@@ -1,5 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Bebas_Neue, Montserrat, Cormorant_Garamond } from 'next/font/google';
+import { ServiceWorkerRegister } from '@/components/notifications/ServiceWorkerRegister';
 import './globals.css';
 
 const bebas = Bebas_Neue({
@@ -24,12 +25,32 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: 'Train with Jaime',
   description: 'Entrenamiento y nutrición personalizados para estudiantes. Y tú, ¿quieres ganar?',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Train with Jaime',
+  },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#081A33',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${bebas.variable} ${montserrat.variable} ${cormorant.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }
